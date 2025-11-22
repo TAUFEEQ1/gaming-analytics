@@ -1,7 +1,7 @@
 """Create an SQLite database and load CSV datasets into separate tables.
 
 Loads:
-- `data/player_averages.csv` -> table `player_averages`
+- `data/interesting_data.csv` -> table `interesting_data`
 - any `*with_rolling*.csv` files under `output/` -> table `rolling_<window>` or derived name
 
 Usage:
@@ -44,7 +44,7 @@ def load_csv_to_table(conn: sqlite3.Connection, csv_path: Path, table_name: str)
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description='Load CSVs into an SQLite database')
     parser.add_argument('--db', default='output/gaming_metrics.db', help='Path to SQLite DB file')
-    parser.add_argument('--data-csv', default='data/player_averages.csv', help='Player averages CSV path')
+    parser.add_argument('--data-csv', default='data/interesting_data.csv', help='CSV path for interesting data')
     parser.add_argument('--output-dir', default='output', help='Directory to search for rolling CSVs')
     args = parser.parse_args(argv)
 
@@ -54,13 +54,13 @@ def main(argv: list[str] | None = None) -> int:
     # Connect to sqlite
     conn = sqlite3.connect(str(db_path))
     try:
-        # Load player averages
-        pa_path = Path(args.data_csv)
-        if not pa_path.exists():
-            print(f"Warning: player averages CSV not found at {pa_path}")
+        # Load interesting data
+        id_path = Path(args.data_csv)
+        if not id_path.exists():
+            print(f"Warning: interesting data CSV not found at {id_path}")
         else:
-            n = load_csv_to_table(conn, pa_path, 'player_averages')
-            print(f"Loaded {n} rows into table `player_averages`")
+            n = load_csv_to_table(conn, id_path, 'interesting_data')
+            print(f"Loaded {n} rows into table `interesting_data`")
 
         # Find rolling CSVs
         out_dir = Path(args.output_dir)

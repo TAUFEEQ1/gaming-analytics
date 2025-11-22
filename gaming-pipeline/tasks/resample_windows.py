@@ -3,7 +3,7 @@ import pandas as pd
 
 
 class BaseResampleWindowsTask(luigi.Task):
-    """Base Luigi Task for resampling `data/player_averages.csv`.
+    """Base Luigi Task for resampling `data/interesting_data.csv`.
 
     Subclasses must set the `window` (pandas offset alias, e.g. '15T') and
     `output_path` (relative path under `output/`).
@@ -12,7 +12,7 @@ class BaseResampleWindowsTask(luigi.Task):
     output_path = None
 
     def input(self):
-        return luigi.LocalTarget('data/player_averages.csv')
+        return luigi.LocalTarget('data/interesting_data.csv')
 
     def output(self):
         if not self.output_path:
@@ -32,38 +32,31 @@ class BaseResampleWindowsTask(luigi.Task):
         resampled_df.to_csv(self.output().path, index=False)
 
 
-class Resample15MinWindowsTask(BaseResampleWindowsTask):
-    """Resample into 15-minute windows."""
-    window = '15T'
-    output_path = 'output/windows/resampled_15min_windows.csv'
+class Resample1MinWindowsTask(BaseResampleWindowsTask):
+    """Resample into 1-minute windows."""
+    window = '1T'
+    output_path = 'output/windows/resampled_1min_windows.csv'
+
+class Resample3MinWindowsTask(BaseResampleWindowsTask):
+    """Resample into 3-minute windows."""
+    window = '3T'
+    output_path = 'output/windows/resampled_3min_windows.csv'
 
 
-class Resample30MinWindowsTask(BaseResampleWindowsTask):
-    """Resample into 30-minute windows."""
-    window = '30T'
-    output_path = 'output/windows/resampled_30min_windows.csv'
+class Resample5MinWindowsTask(BaseResampleWindowsTask):
+    """Resample into 5-minute windows."""
+    window = '5T'
+    output_path = 'output/windows/resampled_5min_windows.csv'
 
-
-class Resample60MinWindowsTask(BaseResampleWindowsTask):
-    """Resample into 60-minute windows."""
-    window = '60T'
-    output_path = 'output/windows/resampled_60min_windows.csv'
-
-
-class Resample120MinWindowsTask(BaseResampleWindowsTask):
-    """Resample into 120-minute windows."""
-    window = '120T'
-    output_path = 'output/windows/resampled_120min_windows.csv'
 
 
 class ResampleAllWindowsTask(luigi.Task):
     """Run all resampling tasks."""
     def requires(self):
         return [
-            Resample15MinWindowsTask(),
-            Resample30MinWindowsTask(),
-            Resample60MinWindowsTask(),
-            Resample120MinWindowsTask(),
+            Resample1MinWindowsTask(),
+            Resample3MinWindowsTask(),
+            Resample5MinWindowsTask(),
         ]
 
     def output(self):

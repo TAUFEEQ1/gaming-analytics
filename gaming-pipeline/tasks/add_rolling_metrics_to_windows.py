@@ -3,10 +3,9 @@ import pandas as pd
 import numpy as np
 
 from tasks.resample_windows import (
-    Resample15MinWindowsTask,
-    Resample30MinWindowsTask,
-    Resample60MinWindowsTask,
-    Resample120MinWindowsTask,
+    Resample1MinWindowsTask,
+    Resample3MinWindowsTask,
+    Resample5MinWindowsTask,
 )
 
 
@@ -62,41 +61,34 @@ class AddRollingMetricsBase(luigi.Task):
         This allows AddRollingMetrics tasks to be executed in parallel
         by requiring their upstream resample tasks.
         """
-        if self.window_minutes == 15:
-            return Resample15MinWindowsTask()
-        if self.window_minutes == 30:
-            return Resample30MinWindowsTask()
-        if self.window_minutes == 60:
-            return Resample60MinWindowsTask()
-        if self.window_minutes == 120:
-            return Resample120MinWindowsTask()
+        if self.window_minutes == 1:
+            return Resample1MinWindowsTask()
+        if self.window_minutes == 3:
+            return Resample3MinWindowsTask()
+        if self.window_minutes == 5:
+            return Resample5MinWindowsTask()
         return None
 
 
-class AddRollingMetrics15MinTask(AddRollingMetricsBase):
-    window_minutes = 15
+class AddRollingMetrics1MinTask(AddRollingMetricsBase):
+    window_minutes = 1
 
 
-class AddRollingMetrics30MinTask(AddRollingMetricsBase):
-    window_minutes = 30
+class AddRollingMetrics3MinTask(AddRollingMetricsBase):
+    window_minutes = 3
 
 
-class AddRollingMetrics60MinTask(AddRollingMetricsBase):
-    window_minutes = 60
-
-
-class AddRollingMetrics120MinTask(AddRollingMetricsBase):
-    window_minutes = 120
+class AddRollingMetrics5MinTask(AddRollingMetricsBase):
+    window_minutes = 5
 
 
 class AddRollingMetricsAllTask(luigi.Task):
     """Run all AddRollingMetrics tasks in parallel (each depends on its resample)."""
     def requires(self):
         return [
-            AddRollingMetrics15MinTask(),
-            AddRollingMetrics30MinTask(),
-            AddRollingMetrics60MinTask(),
-            AddRollingMetrics120MinTask(),
+            AddRollingMetrics1MinTask(),
+            AddRollingMetrics3MinTask(),
+            AddRollingMetrics5MinTask(),
         ]
 
     def output(self):
