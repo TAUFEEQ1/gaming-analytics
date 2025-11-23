@@ -1,0 +1,30 @@
+{
+  "name": "gaming-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Gaming Analytics Dashboard with AI-driven anomaly detection",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4",
+    "vue-tsc": "^3.1.5"
+  },
+  "dependencies": {
+    "@primevue/themes": "^4.4.1",
+    "pinia": "^3.0.4",
+    "plotly.js-dist-min": "^3.3.0",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.4.1",
+    "vue": "^3.5.24",
+    "vue-router": "^4.6.3"
+  }
+}
