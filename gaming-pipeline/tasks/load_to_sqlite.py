@@ -34,7 +34,11 @@ def table_name_for_rolling(path: Path) -> str:
 
 
 def load_csv_to_table(conn: sqlite3.Connection, csv_path: Path, table_name: str) -> int:
-    df = pd.read_csv(csv_path, parse_dates=['time'])
+    # parse_dates=['time'] only if 'time' column exists
+    try:
+        df = pd.read_csv(csv_path, parse_dates=['time'])
+    except ValueError:
+        df = pd.read_csv(csv_path)
     # Ensure column names are sqlite-friendly
     df.columns = [c.replace(' ', '_') for c in df.columns]
     df.to_sql(table_name, conn, if_exists='replace', index=False)
@@ -45,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description='Load CSVs into an SQLite database')
     parser.add_argument('--db', default='output/gaming_metrics.db', help='Path to SQLite DB file')
     parser.add_argument('--data-csv', default='data/interesting_data.csv', help='CSV path for interesting data')
+    parser.add_argument('--casino-csv', default='data/onlineCasino.csv', help='CSV path for online casino data')
     parser.add_argument('--output-dir', default='output', help='Directory to search for rolling CSVs')
     args = parser.parse_args(argv)
 
@@ -61,6 +66,14 @@ def main(argv: list[str] | None = None) -> int:
         else:
             n = load_csv_to_table(conn, id_path, 'interesting_data')
             print(f"Loaded {n} rows into table `interesting_data`")
+
+        # Load online casino data
+        casino_path = Path(args.casino_csv)
+        if not casino_path.exists():
+            print(f"Warning: online casino CSV not found at {casino_path}")
+        else:
+            n = load_csv_to_table(conn, casino_path, 'online_casino')
+            print(f"Loaded {n} rows into table `online_casino`")
 
         # Find rolling CSVs
         out_dir = Path(args.output_dir)
