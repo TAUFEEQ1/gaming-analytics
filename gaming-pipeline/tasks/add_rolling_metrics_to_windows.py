@@ -38,19 +38,19 @@ class AddRollingMetricsBase(luigi.Task):
             mean_col = f"{col}_rolling_mean_{self.rolling_windows}"
             std_col = f"{col}_rolling_std_{self.rolling_windows}"
             df[mean_col] = df[col].rolling(window=self.rolling_windows, min_periods=self.min_periods).mean()
-            df[std_col] = df[col].rolling(window=self.rolling_windows, min_periods=self.min_periods).std()
-            # z-score using the rolling mean/std; will be filled later if NaN
+            # use ddof=0 so std of a single value is 0 rather than NaN
+            df[std_col] = df[col].rolling(window=self.rolling_windows, min_periods=self.min_periods).std(ddof=0)
+            # z-score using the rolling mean/std; fill infs and NaNs with 0
             z_col = f"{col}_zscore_{self.rolling_windows}"
-            df[z_col] = (df[col] - df[mean_col]) / df[std_col]
-            # Replace infinite z-scores (std == 0) with 0
-            df[z_col].replace([np.inf, -np.inf], 0, inplace=True)
+            z = (df[col] - df[mean_col]) / df[std_col]
+            df[z_col] = z.replace([np.inf, -np.inf], 0).fillna(0)
 
         # Backfill numeric NaNs with each column's mean (useful for empty windows)
         numeric_all = df.select_dtypes(include='number').columns.tolist()
         for col in numeric_all:
             col_mean = df[col].mean()
             if pd.notna(col_mean):
-                df[col].fillna(col_mean, inplace=True)
+                df[col] = df[col].fillna(col_mean)
 
         # write out with time as a column again
         df.reset_index().to_csv(self.output().path, index=False)

@@ -19,8 +19,11 @@ class IsolateColumnsTask(luigi.Task):
         df['stake'] = df['money']
         # rename peopleWin to payout
         df['payout'] = df['peopleWin']
+        # people win vs people lost.
+        df['house_net'] = df['peopleWin'] - df['peopleLost']
+
         # Isolate interesting columns
-        interesting_df = df[['ID', 'stake', 'payout', 'time']]
+        interesting_df = df[['ID', 'stake', 'payout', 'house_net','outpay', 'time']]
         
         # Save the interesting player averages to the output CSV file
         interesting_df.to_csv(self.output().path, index=False)

@@ -67,7 +67,8 @@ def main(argv: list[str] | None = None) -> int:
         if not out_dir.exists():
             print(f"Warning: output directory {out_dir} does not exist; no rolling files loaded")
         else:
-            rolling_files = sorted(out_dir.rglob('*with_rolling*.csv'))
+            # pick up files that follow the "*_with_*.csv" convention
+            rolling_files = sorted(out_dir.rglob('*with_*.csv'))
             if not rolling_files:
                 print('No rolling CSV files found under', out_dir)
             for p in rolling_files:
