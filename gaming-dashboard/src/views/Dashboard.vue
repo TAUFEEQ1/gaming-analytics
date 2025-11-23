@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -11,67 +11,87 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
+import Calendar from 'primevue/calendar'
 import StakesPayoutsChart from '@/components/StakesPayoutsChart.vue'
 import StatCard from '@/components/StatCard.vue'
+import { apiService } from '@/services/api'
 
 const searchQuery = ref('')
 const currentMonth = ref('March 2019')
 const activeSection = ref('dashboard')
 const activeChart = ref<'stakes' | 'payouts'>('stakes')
+const dateRange = ref<Date[] | null>(null)
 
-// Anomaly notifications
-const anomalyNotifications = ref([
-  {
-    id: 1,
-    type: 'stakes',
-    severity: 'high',
-    timestamp: new Date(Date.now() - 3600000),
-    value: 2547.80,
-    normalRange: '800-1200',
-    zScore: 4.2,
-    message: 'Unusual spike detected'
-  },
-  {
-    id: 2,
-    type: 'payouts',
-    severity: 'critical',
-    timestamp: new Date(Date.now() - 7200000),
-    value: 1850.50,
-    normalRange: '600-900',
-    zScore: 3.8,
-    message: 'Abnormal payout pattern'
-  },
-  {
-    id: 3,
-    type: 'stakes',
-    severity: 'medium',
-    timestamp: new Date(Date.now() - 10800000),
-    value: 245.30,
-    normalRange: '800-1200',
-    zScore: -3.5,
-    message: 'Unusual drop in stakes'
-  },
-  {
-    id: 4,
-    type: 'payouts',
-    severity: 'high',
-    timestamp: new Date(Date.now() - 14400000),
-    value: 1650.20,
-    normalRange: '600-900',
-    zScore: 3.4,
-    message: 'Spike in payout amount'
-  },
-  {
-    id: 5,
-    type: 'stakes',
-    severity: 'high',
-    timestamp: new Date(Date.now() - 18000000),
-    value: 2100.00,
-    normalRange: '800-1200',
-    zScore: 3.9,
-    message: 'Above normal threshold'
+// API Data
+const stakesData = ref<any>(null)
+const payoutsData = ref<any>(null)
+const loading = ref(false)
+
+// Fetch data from API
+const fetchChartData = async () => {
+  loading.value = true
+  try {
+    const startDate = dateRange.value?.[0] ? dateRange.value[0].toISOString().split('T')[0] : undefined
+    const endDate = dateRange.value?.[1] ? dateRange.value[1].toISOString().split('T')[0] : undefined
+    
+    const [stakes, payouts] = await Promise.all([
+      apiService.getStakesPayoutsChart('stakes', startDate, endDate),
+      apiService.getStakesPayoutsChart('payouts', startDate, endDate)
+    ])
+    stakesData.value = stakes
+    payoutsData.value = payouts
+  } catch (error) {
+    console.error('Error fetching chart data:', error)
+  } finally {
+    loading.value = false
   }
-])
+}
+
+onMounted(() => {
+  fetchChartData()
+})
+
+// Watch for date range changes
+watch(dateRange, () => {
+  fetchChartData()
+})
+
+// Compute anomaly notifications from real data
+const anomalyNotifications = computed(() => {
+  const notifications: any[] = []
+  
+  if (stakesData.value?.data?.anomalies) {
+    stakesData.value.data.anomalies.slice(0, 3).forEach((anomaly: any, index: number) => {
+      notifications.push({
+        id: `stakes-${index}`,
+        type: 'stakes',
+        severity: Math.abs(anomaly.zScore) > 4 ? 'critical' : Math.abs(anomaly.zScore) > 3.5 ? 'high' : 'medium',
+        timestamp: new Date(anomaly.x),
+        value: anomaly.y,
+        normalRange: `${(stakesData.value.mean - 3 * stakesData.value.std).toFixed(0)}-${(stakesData.value.mean + 3 * stakesData.value.std).toFixed(0)}`,
+        zScore: anomaly.zScore,
+        message: anomaly.zScore > 0 ? 'Unusual spike detected' : 'Unusual drop in stakes'
+      })
+    })
+  }
+  
+  if (payoutsData.value?.data?.anomalies) {
+    payoutsData.value.data.anomalies.slice(0, 3).forEach((anomaly: any, index: number) => {
+      notifications.push({
+        id: `payouts-${index}`,
+        type: 'payouts',
+        severity: Math.abs(anomaly.zScore) > 4 ? 'critical' : Math.abs(anomaly.zScore) > 3.5 ? 'high' : 'medium',
+        timestamp: new Date(anomaly.x),
+        value: anomaly.y,
+        normalRange: `${(payoutsData.value.mean - 3 * payoutsData.value.std).toFixed(0)}-${(payoutsData.value.mean + 3 * payoutsData.value.std).toFixed(0)}`,
+        zScore: anomaly.zScore,
+        message: anomaly.zScore > 0 ? 'Abnormal payout pattern' : 'Unusual drop in payouts'
+      })
+    })
+  }
+  
+  return notifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+})
 
 const formatTimeAgo = (date: Date) => {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
@@ -83,185 +103,79 @@ const formatTimeAgo = (date: Date) => {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-// Sample stats data - focused on stakes and payouts
-const stats = ref([
+// Compute stats from real data
+const stats = computed(() => [
   {
     title: 'Stakes Anomalies',
-    value: '47',
+    value: stakesData.value?.data?.anomalies?.length?.toString() || '0',
     subtitle: 'Z-score > 3 detected',
-    trend: 'up',
+    trend: 'up' as const,
     icon: 'pi-exclamation-triangle'
   },
   {
     title: 'Payout Anomalies',
-    value: '38',
+    value: payoutsData.value?.data?.anomalies?.length?.toString() || '0',
     subtitle: 'Unusual payout patterns',
-    trend: 'down',
+    trend: 'down' as const,
     icon: 'pi-exclamation-circle'
   },
   {
-    title: 'Total Rounds',
-    value: '12,547',
-    subtitle: 'Casino rounds analyzed',
-    trend: 'up',
-    icon: 'pi-chart-line'
+    title: 'Average Stake',
+    value: stakesData.value ? `$${stakesData.value.mean.toFixed(2)}` : '$0.00',
+    subtitle: `Std Dev: $${stakesData.value?.std?.toFixed(2) || '0.00'}`,
+    trend: 'up' as const,
+    icon: 'pi-dollar'
   },
   {
-    title: 'Average Stake',
-    value: '$125.50',
-    subtitle: 'Per round average',
-    trend: 'up',
-    icon: 'pi-dollar'
+    title: 'Average Payout',
+    value: payoutsData.value ? `$${payoutsData.value.mean.toFixed(2)}` : '$0.00',
+    subtitle: `Std Dev: $${payoutsData.value?.std?.toFixed(2) || '0.00'}`,
+    trend: 'up' as const,
+    icon: 'pi-chart-line'
   }
 ])
 
-// Anomaly table data
-const anomalyTableData = ref([
-  {
-    id: 1,
-    time: new Date('2024-03-28 14:32:15'),
-    stake: 2547.80,
-    gamers: 45,
-    skins: 12,
-    payout: 1850.50,
-    peopleWin: 8,
-    peopleLost: 37,
-    anomalyType: 'stake',
-    severity: 'high'
-  },
-  {
-    id: 2,
-    time: new Date('2024-03-28 14:15:42'),
-    stake: 1125.40,
-    gamers: 32,
-    skins: 8,
-    payout: 2450.20,
-    peopleWin: 18,
-    peopleLost: 14,
-    anomalyType: 'payout',
-    severity: 'critical'
-  },
-  {
-    id: 3,
-    time: new Date('2024-03-28 13:58:20'),
-    stake: 245.30,
-    gamers: 12,
-    skins: 3,
-    payout: 180.50,
-    peopleWin: 2,
-    peopleLost: 10,
-    anomalyType: 'stake',
-    severity: 'medium'
-  },
-  {
-    id: 4,
-    time: new Date('2024-03-28 13:45:10'),
-    stake: 950.00,
-    gamers: 28,
-    skins: 7,
-    payout: 1650.75,
-    peopleWin: 15,
-    peopleLost: 13,
-    anomalyType: 'payout',
-    severity: 'high'
-  },
-  {
-    id: 5,
-    time: new Date('2024-03-28 13:30:55'),
-    stake: 2100.00,
-    gamers: 40,
-    skins: 10,
-    payout: 1450.30,
-    peopleWin: 12,
-    peopleLost: 28,
-    anomalyType: 'stake',
-    severity: 'high'
-  },
-  {
-    id: 6,
-    time: new Date('2024-03-28 13:12:33'),
-    stake: 850.25,
-    gamers: 25,
-    skins: 6,
-    payout: 2200.40,
-    peopleWin: 20,
-    peopleLost: 5,
-    anomalyType: 'payout',
-    severity: 'critical'
-  },
-  {
-    id: 7,
-    time: new Date('2024-03-28 12:55:18'),
-    stake: 2350.60,
-    gamers: 42,
-    skins: 11,
-    payout: 1750.80,
-    peopleWin: 10,
-    peopleLost: 32,
-    anomalyType: 'stake',
-    severity: 'high'
-  },
-  {
-    id: 8,
-    time: new Date('2024-03-28 12:40:05'),
-    stake: 320.50,
-    gamers: 15,
-    skins: 4,
-    payout: 250.20,
-    peopleWin: 3,
-    peopleLost: 12,
-    anomalyType: 'stake',
-    severity: 'medium'
-  },
-  {
-    id: 9,
-    time: new Date('2024-03-28 12:22:47'),
-    stake: 1050.75,
-    gamers: 30,
-    skins: 8,
-    payout: 1980.50,
-    peopleWin: 17,
-    peopleLost: 13,
-    anomalyType: 'payout',
-    severity: 'high'
-  },
-  {
-    id: 10,
-    time: new Date('2024-03-28 12:05:30'),
-    stake: 2450.90,
-    gamers: 48,
-    skins: 13,
-    payout: 1650.40,
-    peopleWin: 9,
-    peopleLost: 39,
-    anomalyType: 'stake',
-    severity: 'critical'
-  },
-  {
-    id: 11,
-    time: new Date('2024-03-28 11:50:12'),
-    stake: 780.30,
-    gamers: 22,
-    skins: 5,
-    payout: 2100.60,
-    peopleWin: 16,
-    peopleLost: 6,
-    anomalyType: 'payout',
-    severity: 'high'
-  },
-  {
-    id: 12,
-    time: new Date('2024-03-28 11:35:45'),
-    stake: 2800.50,
-    gamers: 52,
-    skins: 14,
-    payout: 1950.25,
-    peopleWin: 11,
-    peopleLost: 41,
-    anomalyType: 'stake',
-    severity: 'critical'
+// Compute anomaly table data from real API data
+const anomalyTableData = computed(() => {
+  const tableData: any[] = []
+  
+  if (stakesData.value && payoutsData.value) {
+    // Add all stake anomalies
+    stakesData.value.data.anomalies.forEach((anomaly: any) => {
+      tableData.push({
+        time: new Date(anomaly.x),
+        stake: anomaly.y,
+        payout: payoutsData.value.mean, // Use average payout for display
+        gamers: Math.floor(Math.random() * 40) + 10, // Mock data
+        skins: Math.floor(Math.random() * 10) + 3,    // Mock data
+        peopleWin: Math.floor(Math.random() * 15) + 5, // Mock data
+        peopleLost: Math.floor(Math.random() * 30) + 10, // Mock data
+        anomalyType: 'stake',
+        severity: Math.abs(anomaly.zScore) > 4 ? 'critical' : Math.abs(anomaly.zScore) > 3.5 ? 'high' : 'medium'
+      })
+    })
+    
+    // Add all payout anomalies
+    payoutsData.value.data.anomalies.forEach((anomaly: any) => {
+      tableData.push({
+        time: new Date(anomaly.x),
+        stake: stakesData.value.mean, // Use average stake for display
+        payout: anomaly.y,
+        gamers: Math.floor(Math.random() * 40) + 10, // Mock data
+        skins: Math.floor(Math.random() * 10) + 3,    // Mock data
+        peopleWin: Math.floor(Math.random() * 15) + 5, // Mock data
+        peopleLost: Math.floor(Math.random() * 30) + 10, // Mock data
+        anomalyType: 'payout',
+        severity: Math.abs(anomaly.zScore) > 4 ? 'critical' : Math.abs(anomaly.zScore) > 3.5 ? 'high' : 'medium'
+      })
+    })
+    
+    // Sort by time descending
+    tableData.sort((a, b) => b.time.getTime() - a.time.getTime())
   }
-])
+  
+  return tableData
+})
 
 const formatDateTime = (date: Date) => {
   return date.toLocaleString('en-US', {
@@ -375,6 +289,28 @@ const getSeverityColor = (severity: string) => {
             <div class="report-title">
               <span class="report-label">Report {{ currentMonth }}</span>
             </div>
+            <div class="date-range-filter">
+              <Calendar 
+                v-model="dateRange" 
+                selectionMode="range" 
+                :manualInput="false"
+                dateFormat="yy-mm-dd"
+                placeholder="Select Date Range"
+                showIcon
+                iconDisplay="input"
+                class="date-range-calendar"
+              />
+              <Button 
+                v-if="dateRange" 
+                icon="pi pi-times" 
+                @click="dateRange = null"
+                text
+                rounded
+                severity="secondary"
+                size="small"
+                title="Clear date filter"
+              />
+            </div>
             <div class="chart-controls">
               <div class="chart-tabs">
                 <Button 
@@ -408,7 +344,11 @@ const getSeverityColor = (severity: string) => {
           <!-- Main Chart -->
           <Card class="main-chart-card">
             <template #content>
-              <StakesPayoutsChart :chart-type="activeChart" />
+              <StakesPayoutsChart 
+                :chart-type="activeChart" 
+                :start-date="dateRange?.[0]?.toISOString().split('T')[0]"
+                :end-date="dateRange?.[1]?.toISOString().split('T')[0]"
+              />
             </template>
           </Card>
 
@@ -502,7 +442,11 @@ const getSeverityColor = (severity: string) => {
             <Badge :value="anomalyNotifications.length" severity="danger" />
           </div>
           
-          <div class="notifications-list">
+          <div v-if="loading" class="loading-container">
+            <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem; color: #5B8DEE;"></i>
+            <p>Loading data...</p>
+          </div>
+          <div v-else class="notifications-list">
             <div 
               v-for="notification in anomalyNotifications" 
               :key="notification.id"
@@ -749,12 +693,30 @@ const getSeverityColor = (severity: string) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .report-label {
   font-size: 0.875rem;
   color: #64748B;
   font-weight: 500;
+}
+
+.date-range-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-range-calendar {
+  width: 280px;
+}
+
+.date-range-calendar :deep(.p-inputtext) {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
 }
 
 .chart-controls {
@@ -804,11 +766,12 @@ const getSeverityColor = (severity: string) => {
 }
 
 .main-chart-card :deep(.p-card-body) {
-  padding: 1.5rem;
+  padding: 0;
 }
 
 .main-chart-card :deep(.p-card-content) {
   padding: 0;
+  height: 100%;
 }
 
 .stats-grid {
@@ -1071,6 +1034,16 @@ const getSeverityColor = (severity: string) => {
   align-items: center;
   justify-content: space-between;
   padding-top: 0;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: #64748B;
 }
 
 </style>
