@@ -1,0 +1,12 @@
+gaming_metrics.db
+.env
+.DS_Store
+venv/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+logs/
+*.log
+tmp/
+*.sqlite3
