@@ -54,6 +54,24 @@ export interface AnomaliesResponse {
   payoutAnomalies: number
 }
 
+export interface Notification {
+  id: number
+  timestamp: string
+  anomaly_type: string
+  severity: string
+  value: number
+  z_score: number
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[]
+  total: number
+  unread: number
+}
+
 class ApiService {
   private baseUrl: string
 
@@ -99,6 +117,55 @@ class ApiService {
       throw new Error('Failed to fetch anomalies')
     }
     return response.json()
+  }
+
+  async getNotifications(
+    unreadOnly: boolean = false,
+    limit: number = 20,
+    offset: number = 0
+  ): Promise<NotificationsResponse> {
+    const params = new URLSearchParams()
+    if (unreadOnly) params.append('unread_only', 'true')
+    params.append('limit', limit.toString())
+    params.append('offset', offset.toString())
+    
+    const response = await fetch(
+      `${this.baseUrl}/api/notifications/?${params.toString()}`
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch notifications')
+    }
+    return response.json()
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/api/notifications/${id}/read`,
+      { method: 'PATCH' }
+    )
+    if (!response.ok) {
+      throw new Error('Failed to mark notification as read')
+    }
+  }
+
+  async markAllNotificationsRead(): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/api/notifications/mark-all-read`,
+      { method: 'PATCH' }
+    )
+    if (!response.ok) {
+      throw new Error('Failed to mark all notifications as read')
+    }
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    const response = await fetch(
+      `${this.baseUrl}/api/notifications/${id}`,
+      { method: 'DELETE' }
+    )
+    if (!response.ok) {
+      throw new Error('Failed to delete notification')
+    }
   }
 }
 

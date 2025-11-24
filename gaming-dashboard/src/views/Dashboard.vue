@@ -14,7 +14,7 @@ import Divider from 'primevue/divider'
 import Calendar from 'primevue/calendar'
 import StakesPayoutsChart from '@/components/StakesPayoutsChart.vue'
 import StatCard from '@/components/StatCard.vue'
-import { apiService } from '@/services/api'
+import { apiService, type Notification } from '@/services/api'
 
 const searchQuery = ref('')
 const currentMonth = ref('March 2019')
@@ -26,6 +26,9 @@ const dateRange = ref<Date[] | null>(null)
 const stakesData = ref<any>(null)
 const payoutsData = ref<any>(null)
 const loading = ref(false)
+const notifications = ref<Notification[]>([])
+const unreadCount = ref(0)
+const notificationsLoading = ref(false)
 
 // Fetch data from API
 const fetchChartData = async () => {
@@ -47,14 +50,96 @@ const fetchChartData = async () => {
   }
 }
 
+// Fetch notifications from API
+const fetchNotifications = async () => {
+  notificationsLoading.value = true
+  try {
+    const response = await apiService.getNotifications(true, 20, 0) // Changed to true to fetch only unread
+    notifications.value = response.notifications
+    unreadCount.value = response.unread
+  } catch (error) {
+    console.error('Error fetching notifications:', error)
+  } finally {
+    notificationsLoading.value = false
+  }
+}
+
+// Mark notification as read
+const markAsRead = async (id: number) => {
+  try {
+    await apiService.markNotificationRead(id)
+    const notification = notifications.value.find(n => n.id === id)
+    if (notification) {
+      notification.is_read = true
+      unreadCount.value = Math.max(0, unreadCount.value - 1)
+    }
+  } catch (error) {
+    console.error('Error marking notification as read:', error)
+  }
+}
+
+// Delete notification
+const deleteNotification = async (id: number) => {
+  try {
+    await apiService.deleteNotification(id)
+    const index = notifications.value.findIndex(n => n.id === id)
+    if (index !== -1) {
+      const wasUnread = !notifications.value[index].is_read
+      notifications.value.splice(index, 1)
+      if (wasUnread) {
+        unreadCount.value = Math.max(0, unreadCount.value - 1)
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting notification:', error)
+  }
+}
+
+// Mark all as read
+const markAllAsRead = async () => {
+  try {
+    await apiService.markAllNotificationsRead()
+    notifications.value.forEach(n => n.is_read = true)
+    unreadCount.value = 0
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error)
+  }
+}
+
 onMounted(() => {
   fetchChartData()
+  fetchNotifications()
+  
+  // Poll for new notifications every 30 seconds
+  setInterval(fetchNotifications, 30000)
 })
 
 // Watch for date range changes
 watch(dateRange, () => {
   fetchChartData()
 })
+
+// Format notification timestamp
+const formatNotificationTime = (timestamp: string) => {
+  const date = new Date(timestamp)
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
+
+// Get severity color for notification
+const getNotificationSeverity = (severity: string) => {
+  switch (severity.toLowerCase()) {
+    case 'critical': return 'critical'
+    case 'high': return 'high'
+    case 'medium': return 'medium'
+    default: return 'medium'
+  }
+}
 
 // Compute anomaly notifications from real data
 const anomalyNotifications = computed(() => {
@@ -228,6 +313,12 @@ const getSeverityColor = (severity: string) => {
           @click="activeSection = 'alerts'"
         >
           <i class="pi pi-bell"></i>
+          <Badge 
+            v-if="unreadCount > 0" 
+            :value="unreadCount" 
+            severity="danger" 
+            class="notification-badge"
+          />
         </button>
         <button 
           :class="['nav-item', { active: activeSection === 'settings' }]"
@@ -438,26 +529,42 @@ const getSeverityColor = (severity: string) => {
         <!-- Right Sidebar -->
         <aside class="right-sidebar">
           <div class="notifications-header">
-            <h3>Anomaly Alerts</h3>
-            <Badge :value="anomalyNotifications.length" severity="danger" />
+            <h3>Anomaly Notifications</h3>
+            <div class="header-actions">
+              <Badge :value="unreadCount" severity="danger" />
+              <Button 
+                v-if="unreadCount > 0"
+                label="Mark all read" 
+                @click="markAllAsRead"
+                text 
+                size="small"
+                severity="secondary"
+              />
+            </div>
           </div>
           
-          <div v-if="loading" class="loading-container">
+          <div v-if="notificationsLoading" class="loading-container">
             <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem; color: #5B8DEE;"></i>
-            <p>Loading data...</p>
+            <p>Loading notifications...</p>
+          </div>
+          <div v-else-if="notifications.length === 0" class="empty-state">
+            <i class="pi pi-bell" style="font-size: 3rem; color: #CBD5E1;"></i>
+            <p>No notifications</p>
+            <span class="empty-hint">Anomalies will appear here</span>
           </div>
           <div v-else class="notifications-list">
             <div 
-              v-for="notification in anomalyNotifications" 
+              v-for="notification in notifications" 
               :key="notification.id"
-              :class="['notification-item', notification.severity]"
+              :class="['notification-item', getNotificationSeverity(notification.severity), { unread: !notification.is_read }]"
             >
               <div class="notification-header">
                 <div class="notification-type">
-                  <i :class="notification.type === 'stakes' ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
-                  <span class="type-label">{{ notification.type === 'stakes' ? 'Stakes' : 'Payouts' }}</span>
+                  <i :class="notification.anomaly_type === 'stakes' ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>
+                  <span class="type-label">{{ notification.anomaly_type }}</span>
+                  <Badge v-if="!notification.is_read" value="NEW" severity="info" size="small" />
                 </div>
-                <span class="notification-time">{{ formatTimeAgo(notification.timestamp) }}</span>
+                <span class="notification-time">{{ formatNotificationTime(notification.created_at) }}</span>
               </div>
               
               <div class="notification-body">
@@ -468,22 +575,43 @@ const getSeverityColor = (severity: string) => {
                     <span class="detail-value">${{ notification.value.toFixed(2) }}</span>
                   </div>
                   <div class="detail-row">
-                    <span class="detail-label">Normal Range:</span>
-                    <span class="detail-value">${{ notification.normalRange }}</span>
+                    <span class="detail-label">Z-Score:</span>
+                    <span :class="['detail-value', 'z-score', { negative: notification.z_score < 0 }]">
+                      {{ notification.z_score > 0 ? '+' : '' }}{{ notification.z_score.toFixed(2) }}
+                    </span>
                   </div>
                   <div class="detail-row">
-                    <span class="detail-label">Z-Score:</span>
-                    <span :class="['detail-value', 'z-score', { negative: notification.zScore < 0 }]">
-                      {{ notification.zScore > 0 ? '+' : '' }}{{ notification.zScore.toFixed(1) }}
-                    </span>
+                    <span class="detail-label">Severity:</span>
+                    <Tag :value="notification.severity" :severity="getSeverityColor(notification.severity)" />
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Time:</span>
+                    <span class="detail-value time">{{ new Date(notification.timestamp).toLocaleString() }}</span>
                   </div>
                 </div>
               </div>
               
               <Divider />
               <div class="notification-footer">
-                <Button label="View Details" link size="small" severity="info" />
-                <Button icon="pi pi-times" text rounded size="small" severity="secondary" />
+                <Button 
+                  v-if="!notification.is_read"
+                  label="Mark as read" 
+                  @click="markAsRead(notification.id)"
+                  link 
+                  size="small" 
+                  severity="info" 
+                />
+                <span v-else class="read-label">
+                  <i class="pi pi-check"></i> Read
+                </span>
+                <Button 
+                  icon="pi pi-trash" 
+                  @click="deleteNotification(notification.id)"
+                  text 
+                  rounded 
+                  size="small" 
+                  severity="danger" 
+                />
               </div>
             </div>
           </div>
@@ -544,6 +672,15 @@ const getSeverityColor = (severity: string) => {
   color: #94A3B8;
   font-size: 1.25rem;
   position: relative;
+}
+
+.nav-item .notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 0.625rem;
 }
 
 .nav-item:hover {
@@ -923,6 +1060,12 @@ const getSeverityColor = (severity: string) => {
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .notifications-list {
   display: flex;
   flex-direction: column;
@@ -956,6 +1099,21 @@ const getSeverityColor = (severity: string) => {
 .notification-item.medium {
   border-left-color: #3B82F6;
   background: linear-gradient(to right, #EFF6FF 0%, white 10%);
+}
+
+.notification-item.unread {
+  box-shadow: 0 2px 8px rgba(91, 141, 238, 0.15);
+}
+
+.notification-item.unread::before {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 8px;
+  height: 8px;
+  background: #3B82F6;
+  border-radius: 50%;
 }
 
 .notification-header {
@@ -1034,6 +1192,46 @@ const getSeverityColor = (severity: string) => {
   align-items: center;
   justify-content: space-between;
   padding-top: 0;
+}
+
+.read-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #10B981;
+  font-weight: 500;
+}
+
+.read-label i {
+  font-size: 0.875rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #64748B;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 1rem 0 0.25rem;
+  color: #475569;
+}
+
+.empty-hint {
+  font-size: 0.875rem;
+  color: #94A3B8;
+}
+
+.detail-value.time {
+  font-size: 0.7rem;
+  color: #64748B;
 }
 
 .loading-container {
