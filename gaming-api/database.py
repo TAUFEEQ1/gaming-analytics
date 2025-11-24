@@ -106,6 +106,30 @@ class Rolling5Min(Base):
     payout_rolling_std_3 = Column(Float)
     payout_zscore_3 = Column(Float)
 
+class RollingInterestingWithDBSCAN(Base):
+    __tablename__ = "rolling_interesting_with_dbscan"
+    
+    ID = Column(Integer, primary_key=True)
+    stake = Column(Float)
+    payout = Column(Float)
+    house_net = Column(Float)
+    outpay = Column(Float)
+    time = Column(DateTime)
+    stake_global_mean = Column(Float)
+    stake_global_std = Column(Float)
+    stake_global_z = Column(Float)
+    payout_global_mean = Column(Float)
+    payout_global_std = Column(Float)
+    payout_global_z = Column(Float)
+    house_net_global_mean = Column(Float)
+    house_net_global_std = Column(Float)
+    house_net_global_z = Column(Float)
+    outpay_global_mean = Column(Float)
+    outpay_global_std = Column(Float)
+    outpay_global_z = Column(Float)
+    db_anomaly = Column(Integer)
+    db_cluster = Column(Integer)
+
 class Notification(Base):
     __tablename__ = "notifications"
     

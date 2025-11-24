@@ -62,6 +62,7 @@ celery -A celery_app beat --loglevel=info
 ```
 
 ### 5. Start FastAPI Server
+
 ```bash
 cd gaming-api
 uvicorn main:app --reload
@@ -70,6 +71,7 @@ uvicorn main:app --reload
 ## Notification API Endpoints
 
 ### Get Notifications
+
 ```bash
 # Get all notifications
 GET /api/notifications/
@@ -82,16 +84,19 @@ GET /api/notifications/?limit=20&offset=0
 ```
 
 ### Mark Notification as Read
+
 ```bash
 PATCH /api/notifications/{notification_id}/read
 ```
 
 ### Mark All Notifications as Read
+
 ```bash
 PATCH /api/notifications/mark-all-read
 ```
 
 ### Delete Notification
+
 ```bash
 DELETE /api/notifications/{notification_id}
 ```
@@ -99,6 +104,7 @@ DELETE /api/notifications/{notification_id}
 ## Celery Task Schedule
 
 The anomaly detection task runs every 5 minutes automatically:
+
 - Scans the last 10 minutes of data
 - Detects anomalies with |Z-score| > 3
 - Creates notifications for new anomalies
@@ -107,6 +113,7 @@ The anomaly detection task runs every 5 minutes automatically:
 ## Manual Task Execution
 
 You can manually trigger the anomaly detection task:
+
 ```python
 from tasks import detect_anomalies_task
 result = detect_anomalies_task.delay()
@@ -115,8 +122,10 @@ result = detect_anomalies_task.delay()
 ## Monitoring Celery
 
 ### Flower (Web-based monitoring tool)
+
 ```bash
 pip install flower
 celery -A celery_app flower
 ```
-Then visit http://localhost:5555
+
+Then visit <http://localhost:5555>
