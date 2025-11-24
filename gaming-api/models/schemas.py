@@ -53,3 +53,21 @@ class DashboardSummary(BaseModel):
     recentAnomalies: List[AnomalyNotification]
     totalAnomalies: int
     lastUpdated: datetime
+
+class NotificationResponse(BaseModel):
+    id: int
+    timestamp: datetime
+    anomaly_type: str  # 'stakes', 'payouts', 'stake', or 'payout'
+    severity: str  # 'critical', 'high', 'medium'
+    value: float
+    z_score: float
+    message: str
+    is_read: bool
+    created_at: datetime
+
+class NotificationListResponse(BaseModel):
+    notifications: List[NotificationResponse]
+    total: int
+    unread: int
+    limit: int
+    offset: int

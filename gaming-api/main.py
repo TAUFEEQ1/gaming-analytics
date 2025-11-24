@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-from routers import analytics, anomalies, stats
+from routers import analytics, anomalies, stats, notifications
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(anomalies.router, prefix="/api/anomalies", tags=["anomalies"])
 app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
 
 @app.get("/")
 async def root():

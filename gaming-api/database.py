@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -105,3 +105,19 @@ class Rolling5Min(Base):
     payout_rolling_mean_3 = Column(Float)
     payout_rolling_std_3 = Column(Float)
     payout_zscore_3 = Column(Float)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, nullable=False)
+    anomaly_type = Column(String, nullable=False)  # 'stake' or 'payout'
+    severity = Column(String, nullable=False)  # 'critical', 'high', 'medium'
+    value = Column(Float, nullable=False)
+    z_score = Column(Float, nullable=False)
+    message = Column(String, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+# Create tables if they don't exist
+Base.metadata.create_all(bind=engine)

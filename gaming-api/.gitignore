@@ -10,3 +10,4 @@ logs/
 *.log
 tmp/
 *.sqlite3
+celerybeat-schedule.db
