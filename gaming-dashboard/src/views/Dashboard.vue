@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
@@ -16,6 +17,7 @@ import StakesPayoutsChart from '@/components/StakesPayoutsChart.vue'
 import StatCard from '@/components/StatCard.vue'
 import { apiService, type Notification } from '@/services/api'
 
+const router = useRouter()
 const searchQuery = ref('')
 const currentMonth = ref('March 2019')
 const activeSection = ref('dashboard')
@@ -295,6 +297,12 @@ const getSeverityColor = (severity: string) => {
           @click="activeSection = 'dashboard'"
         >
           <i class="pi pi-chart-bar"></i>
+        </button>
+        <button 
+          :class="['nav-item', { active: activeSection === 'composite' }]"
+          @click="router.push('/composite')"
+        >
+          <i class="pi pi-sitemap"></i>
         </button>
         <button 
           :class="['nav-item', { active: activeSection === 'analytics' }]"
