@@ -61,6 +61,18 @@ class CompositeStats(BaseModel):
     normalPoints: int
     clusterCount: int
 
+class RoundDetail(BaseModel):
+    ID: int
+    gamers: int
+    skins: int
+    money: float
+    ticks: float
+    peopleWin: float
+    peopleLost: float
+    outpay: float
+    time: datetime
+    moderator: int
+
 @router.get("/chart-data", response_model=CompositeChartData)
 async def get_composite_chart_data(
     limit: int = Query(100, ge=10, le=10000, description="Number of records to retrieve"),
@@ -354,3 +366,28 @@ async def get_dbscan_anomaly_count(
         "low": low_count,
         "period_hours": hours
     }
+
+@router.get("/round/{round_id}", response_model=RoundDetail)
+async def get_round_details(
+    round_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get detailed information about a specific round from online_casino table"""
+    casino_record = db.query(OnlineCasino).filter(OnlineCasino.ID == round_id).first()
+    
+    if not casino_record:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Round {round_id} not found")
+    
+    return RoundDetail(
+        ID=casino_record.ID,
+        gamers=casino_record.gamers,
+        skins=casino_record.skins,
+        money=round(casino_record.money, 2),
+        ticks=round(casino_record.ticks, 2),
+        peopleWin=round(casino_record.peopleWin, 2),
+        peopleLost=round(casino_record.peopleLost, 2),
+        outpay=round(casino_record.outpay, 2),
+        time=casino_record.time,
+        moderator=casino_record.moderator
+    )
