@@ -13,10 +13,11 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
 import Calendar from 'primevue/calendar'
+import Dialog from 'primevue/dialog'
 import CompositeMetricsChart from '@/components/CompositeMetricsChart.vue'
 import StatCard from '@/components/StatCard.vue'
 import { apiService } from '@/services/api'
-import type { DBSCANNotification, DBSCANTableRecord, CompositeStats } from '@/services/api'
+import type { DBSCANNotification, DBSCANTableRecord, CompositeStats, RoundDetail } from '@/services/api'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -42,6 +43,11 @@ const stats = ref<Array<{
 
 // DBSCAN Anomaly table data
 const dbscanAnomalyData = ref<DBSCANTableRecord[]>([])
+
+// Round details modal
+const showRoundModal = ref(false)
+const selectedRound = ref<RoundDetail | null>(null)
+const loadingRoundDetails = ref(false)
 
 const formatTimeAgo = (timestamp: string) => {
   const date = new Date(timestamp)
@@ -153,6 +159,18 @@ const getZScoreClass = (zScore: number) => {
   if (abs >= 3) return 'zscore-critical'
   if (abs >= 2) return 'zscore-high'
   return 'zscore-normal'
+}
+
+const viewRoundDetails = async (roundId: number) => {
+  loadingRoundDetails.value = true
+  showRoundModal.value = true
+  try {
+    selectedRound.value = await apiService.getRoundDetails(roundId)
+  } catch (error) {
+    console.error('Failed to fetch round details:', error)
+  } finally {
+    loadingRoundDetails.value = false
+  }
 }
 </script>
 
@@ -375,6 +393,19 @@ const getZScoreClass = (zScore: number) => {
                     />
                   </template>
                 </Column>
+                <Column header="Actions">
+                  <template #body="slotProps">
+                    <Button 
+                      icon="pi pi-eye" 
+                      @click="viewRoundDetails(slotProps.data.id)"
+                      text
+                      rounded
+                      severity="info"
+                      size="small"
+                      v-tooltip.top="'View Details'"
+                    />
+                  </template>
+                </Column>
               </DataTable>
             </template>
           </Card>
@@ -435,6 +466,92 @@ const getZScoreClass = (zScore: number) => {
         </aside>
       </div>
     </main>
+
+    <!-- Round Details Modal -->
+    <Dialog 
+      v-model:visible="showRoundModal" 
+      modal 
+      header="Round Details"
+      :style="{ width: '600px' }"
+      :draggable="false"
+    >
+      <div v-if="loadingRoundDetails" class="loading-state">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <p>Loading round details...</p>
+      </div>
+      <div v-else-if="selectedRound" class="round-details">
+        <div class="detail-section">
+          <h4>Round Information</h4>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Round ID:</span>
+              <span class="detail-value">#{{ selectedRound.ID }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Timestamp:</span>
+              <span class="detail-value">{{ formatDateTime(selectedRound.time) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Moderator:</span>
+              <span class="detail-value">{{ selectedRound.moderator === 1 ? 'Yes' : 'No' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <Divider />
+
+        <div class="detail-section">
+          <h4>Game Metrics</h4>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Gamers:</span>
+              <span class="detail-value highlight">{{ selectedRound.gamers }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Skins:</span>
+              <span class="detail-value highlight">{{ selectedRound.skins }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Ticks:</span>
+              <span class="detail-value">${{ selectedRound.ticks.toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <Divider />
+
+        <div class="detail-section">
+          <h4>Financial Metrics</h4>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Money (Stake):</span>
+              <span class="detail-value money">${{ selectedRound.money.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">People Win:</span>
+              <span class="detail-value win">${{ selectedRound.peopleWin.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">People Lost:</span>
+              <span class="detail-value loss">${{ selectedRound.peopleLost.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Outpay:</span>
+              <span class="detail-value">${{ selectedRound.outpay.toFixed(2) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">House Net:</span>
+              <span :class="['detail-value', 'house-net', (selectedRound.peopleWin - selectedRound.peopleLost) > 0 ? 'positive' : 'negative']">
+                ${{ (selectedRound.peopleWin - selectedRound.peopleLost).toFixed(2) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <Button label="Close" icon="pi pi-times" @click="showRoundModal = false" text />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -981,5 +1098,107 @@ const getZScoreClass = (zScore: number) => {
   align-items: center;
   justify-content: space-between;
   padding-top: 0;
+}
+
+/* Round Details Modal */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: #64748B;
+}
+
+.round-details {
+  padding: 1rem 0;
+}
+
+.detail-section {
+  margin-bottom: 1rem;
+}
+
+.detail-section h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1E293B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-section h4::before {
+  content: '';
+  width: 4px;
+  height: 1rem;
+  background: #5B8DEE;
+  border-radius: 2px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #F8FAFC;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #64748B;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 1rem;
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.detail-value.highlight {
+  color: #5B8DEE;
+  font-size: 1.25rem;
+}
+
+.detail-value.money {
+  color: #3B82F6;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.detail-value.win {
+  color: #10B981;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.detail-value.loss {
+  color: #EF4444;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.detail-value.house-net {
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 1.125rem;
+}
+
+.detail-value.house-net.positive {
+  color: #10B981;
+}
+
+.detail-value.house-net.negative {
+  color: #EF4444;
 }
 </style>

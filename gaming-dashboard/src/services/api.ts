@@ -121,6 +121,19 @@ export interface CompositeStats {
   clusterCount: number
 }
 
+export interface RoundDetail {
+  ID: number
+  gamers: number
+  skins: number
+  money: number
+  ticks: number
+  peopleWin: number
+  peopleLost: number
+  outpay: number
+  time: string
+  moderator: number
+}
+
 class ApiService {
   private baseUrl: string
 
@@ -290,6 +303,16 @@ class ApiService {
     )
     if (!response.ok) {
       throw new Error('Failed to fetch composite stats')
+    }
+    return response.json()
+  }
+
+  async getRoundDetails(roundId: number): Promise<RoundDetail> {
+    const response = await fetch(
+      `${this.baseUrl}/api/composite/round/${roundId}`
+    )
+    if (!response.ok) {
+      throw new Error(`Failed to fetch round ${roundId} details`)
     }
     return response.json()
   }
