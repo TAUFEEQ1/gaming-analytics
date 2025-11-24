@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -12,67 +12,39 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Divider from 'primevue/divider'
+import Calendar from 'primevue/calendar'
 import CompositeMetricsChart from '@/components/CompositeMetricsChart.vue'
 import StatCard from '@/components/StatCard.vue'
+import { apiService } from '@/services/api'
+import type { DBSCANNotification, DBSCANTableRecord, CompositeStats } from '@/services/api'
 
 const router = useRouter()
 const searchQuery = ref('')
 const currentMonth = ref('March 2019')
 const activeSection = ref('composite')
 
-// DBSCAN Anomaly notifications
-const anomalyNotifications = ref([
-  {
-    id: 1,
-    type: 'multivariate',
-    severity: 'critical',
-    timestamp: new Date(Date.now() - 3600000),
-    metrics: {
-      stakeZScore: 3.8,
-      payoutZScore: 4.1,
-      houseNetZScore: -3.2
-    },
-    message: 'Multi-variate anomaly cluster detected'
-  },
-  {
-    id: 2,
-    type: 'multivariate',
-    severity: 'high',
-    timestamp: new Date(Date.now() - 7200000),
-    metrics: {
-      stakeZScore: -2.9,
-      payoutZScore: 3.5,
-      houseNetZScore: 4.2
-    },
-    message: 'Unusual pattern in composite metrics'
-  },
-  {
-    id: 3,
-    type: 'multivariate',
-    severity: 'high',
-    timestamp: new Date(Date.now() - 10800000),
-    metrics: {
-      stakeZScore: 3.2,
-      payoutZScore: 3.4,
-      houseNetZScore: -3.8
-    },
-    message: 'DBSCAN cluster outlier identified'
-  },
-  {
-    id: 4,
-    type: 'multivariate',
-    severity: 'medium',
-    timestamp: new Date(Date.now() - 14400000),
-    metrics: {
-      stakeZScore: 2.8,
-      payoutZScore: -3.1,
-      houseNetZScore: 3.3
-    },
-    message: 'Composite anomaly detected'
-  }
-])
+// Date filter state
+const dateRange = ref<Date[] | null>(null)
+const startDate = ref<string | undefined>(undefined)
+const endDate = ref<string | undefined>(undefined)
 
-const formatTimeAgo = (date: Date) => {
+// DBSCAN Anomaly notifications
+const anomalyNotifications = ref<DBSCANNotification[]>([])
+
+// Composite stats
+const stats = ref<Array<{
+  title: string
+  value: string
+  subtitle: string
+  trend: 'up' | 'down'
+  icon: string
+}>>([])
+
+// DBSCAN Anomaly table data
+const dbscanAnomalyData = ref<DBSCANTableRecord[]>([])
+
+const formatTimeAgo = (timestamp: string) => {
+  const date = new Date(timestamp)
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
   if (seconds < 60) return `${seconds}s ago`
   const minutes = Math.floor(seconds / 60)
@@ -82,199 +54,81 @@ const formatTimeAgo = (date: Date) => {
   return `${Math.floor(hours / 24)}d ago`
 }
 
-// Composite stats
-const stats = ref([
-  {
-    title: 'DBSCAN Anomalies',
-    value: '23',
-    subtitle: 'Multi-variate outliers',
-    trend: 'up' as 'up' | 'down',
-    icon: 'pi-exclamation-triangle'
-  },
-  {
-    title: 'Avg House Net',
-    value: '$-42.30',
-    subtitle: 'Per round average',
-    trend: 'down' as 'up' | 'down',
-    icon: 'pi-chart-line'
-  },
-  {
-    title: 'Total Rounds',
-    value: '12,547',
-    subtitle: 'Rounds analyzed',
-    trend: 'up' as 'up' | 'down',
-    icon: 'pi-sync'
-  },
-  {
-    title: 'Cluster Confidence',
-    value: '94.2%',
-    subtitle: 'DBSCAN accuracy',
-    trend: 'up' as 'up' | 'down',
-    icon: 'pi-check-circle'
-  }
-])
+// Fetch data function with date filters
+const fetchData = async () => {
+  try {
+    // Fetch notifications
+    const notifications = await apiService.getDBSCANNotifications(5, startDate.value, endDate.value)
+    anomalyNotifications.value = notifications
 
-// DBSCAN Anomaly table data
-const dbscanAnomalyData = ref([
-  {
-    id: 1,
-    round: 1542,
-    time: new Date('2024-03-28 14:32:15'),
-    stake: 2547.80,
-    payout: 1850.50,
-    houseNet: -697.30,
-    stakeZScore: 3.8,
-    payoutZScore: 2.1,
-    houseNetZScore: -3.2,
-    dbAnomaly: 1,
-    severity: 'critical'
-  },
-  {
-    id: 2,
-    round: 1489,
-    time: new Date('2024-03-28 14:15:42'),
-    stake: 1125.40,
-    payout: 2450.20,
-    houseNet: 1324.80,
-    stakeZScore: -0.8,
-    payoutZScore: 4.2,
-    houseNetZScore: 4.5,
-    dbAnomaly: 1,
-    severity: 'critical'
-  },
-  {
-    id: 3,
-    round: 1456,
-    time: new Date('2024-03-28 13:58:20'),
-    stake: 950.00,
-    payout: 780.50,
-    houseNet: -169.50,
-    stakeZScore: 0.2,
-    payoutZScore: -0.5,
-    houseNetZScore: 0.3,
-    dbAnomaly: 0,
-    severity: 'normal'
-  },
-  {
-    id: 4,
-    round: 1423,
-    time: new Date('2024-03-28 13:45:10'),
-    stake: 2350.60,
-    payout: 1950.75,
-    houseNet: -399.85,
-    stakeZScore: 3.5,
-    payoutZScore: 3.1,
-    houseNetZScore: -2.8,
-    dbAnomaly: 1,
-    severity: 'high'
-  },
-  {
-    id: 5,
-    round: 1398,
-    time: new Date('2024-03-28 13:30:55'),
-    stake: 1050.00,
-    payout: 850.30,
-    houseNet: -199.70,
-    stakeZScore: 0.5,
-    payoutZScore: -0.2,
-    houseNetZScore: 0.1,
-    dbAnomaly: 0,
-    severity: 'normal'
-  },
-  {
-    id: 6,
-    round: 1375,
-    time: new Date('2024-03-28 13:12:33'),
-    stake: 850.25,
-    payout: 2200.40,
-    houseNet: 1350.15,
-    stakeZScore: -0.9,
-    payoutZScore: 3.9,
-    houseNetZScore: 4.3,
-    dbAnomaly: 1,
-    severity: 'critical'
-  },
-  {
-    id: 7,
-    round: 1342,
-    time: new Date('2024-03-28 12:55:18'),
-    stake: 2100.60,
-    payout: 1750.80,
-    houseNet: -349.80,
-    stakeZScore: 3.1,
-    payoutZScore: 2.5,
-    houseNetZScore: -2.5,
-    dbAnomaly: 1,
-    severity: 'high'
-  },
-  {
-    id: 8,
-    round: 1318,
-    time: new Date('2024-03-28 12:40:05'),
-    stake: 920.50,
-    payout: 780.20,
-    houseNet: -140.30,
-    stakeZScore: 0.1,
-    payoutZScore: -0.4,
-    houseNetZScore: 0.2,
-    dbAnomaly: 0,
-    severity: 'normal'
-  },
-  {
-    id: 9,
-    round: 1289,
-    time: new Date('2024-03-28 12:22:47'),
-    stake: 1050.75,
-    payout: 1980.50,
-    houseNet: 929.75,
-    stakeZScore: 0.3,
-    payoutZScore: 3.4,
-    houseNetZScore: 3.7,
-    dbAnomaly: 1,
-    severity: 'high'
-  },
-  {
-    id: 10,
-    round: 1265,
-    time: new Date('2024-03-28 12:05:30'),
-    stake: 2450.90,
-    payout: 1650.40,
-    houseNet: -800.50,
-    stakeZScore: 3.7,
-    payoutZScore: 1.8,
-    houseNetZScore: -3.5,
-    dbAnomaly: 1,
-    severity: 'critical'
-  },
-  {
-    id: 11,
-    round: 1238,
-    time: new Date('2024-03-28 11:50:12'),
-    stake: 980.30,
-    payout: 820.60,
-    houseNet: -159.70,
-    stakeZScore: 0.2,
-    payoutZScore: -0.3,
-    houseNetZScore: 0.1,
-    dbAnomaly: 0,
-    severity: 'normal'
-  },
-  {
-    id: 12,
-    round: 1215,
-    time: new Date('2024-03-28 11:35:45'),
-    stake: 2800.50,
-    payout: 1950.25,
-    houseNet: -850.25,
-    stakeZScore: 4.1,
-    payoutZScore: 2.9,
-    houseNetZScore: -3.8,
-    dbAnomaly: 1,
-    severity: 'critical'
-  }
-])
+    // Fetch stats
+    const compositeStats: CompositeStats = await apiService.getCompositeStats(startDate.value, endDate.value)
+    stats.value = [
+      {
+        title: 'DBSCAN Anomalies',
+        value: compositeStats.dbscanAnomalies.toString(),
+        subtitle: 'Multi-variate outliers',
+        trend: 'up',
+        icon: 'pi-exclamation-triangle'
+      },
+      {
+        title: 'Avg House Net',
+        value: `$${compositeStats.avgHouseNet.toFixed(2)}`,
+        subtitle: 'Per round average',
+        trend: compositeStats.avgHouseNet < 0 ? 'down' : 'up',
+        icon: 'pi-chart-line'
+      },
+      {
+        title: 'Total Rounds',
+        value: compositeStats.totalRounds.toLocaleString(),
+        subtitle: 'Rounds analyzed',
+        trend: 'up',
+        icon: 'pi-sync'
+      },
+      {
+        title: 'Cluster Count',
+        value: compositeStats.clusterCount.toString(),
+        subtitle: 'DBSCAN clusters',
+        trend: 'up',
+        icon: 'pi-check-circle'
+      }
+    ]
 
-const formatDateTime = (date: Date) => {
+    // Fetch table data (anomalies only)
+    const tableData = await apiService.getDBSCANTable(12, true, startDate.value, endDate.value)
+    dbscanAnomalyData.value = tableData
+  } catch (error) {
+    console.error('Failed to fetch composite data:', error)
+  }
+}
+
+// Handle date range change
+const onDateRangeChange = () => {
+  if (dateRange.value && dateRange.value.length === 2) {
+    startDate.value = dateRange.value[0]?.toISOString()
+    endDate.value = dateRange.value[1]?.toISOString()
+  } else {
+    startDate.value = undefined
+    endDate.value = undefined
+  }
+  fetchData()
+}
+
+// Clear filters
+const clearFilters = () => {
+  dateRange.value = null
+  startDate.value = undefined
+  endDate.value = undefined
+  fetchData()
+}
+
+// Fetch data on mount
+onMounted(async () => {
+  await fetchData()
+})
+
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString)
   return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -357,14 +211,28 @@ const getZScoreClass = (zScore: number) => {
           <h2 class="page-subtitle">Multi-Variate Anomaly Analysis</h2>
         </div>
         <div class="header-center">
-          <IconField iconPosition="left">
-            <InputIcon class="pi pi-search" />
-            <InputText 
-              v-model="searchQuery" 
-              placeholder="Searching for" 
-              class="search-input"
+          <div class="filter-controls">
+            <Calendar 
+              v-model="dateRange" 
+              selectionMode="range" 
+              :manualInput="false"
+              dateFormat="M dd, yy"
+              placeholder="Select date range"
+              @date-select="onDateRangeChange"
+              showIcon
+              :showButtonBar="true"
+              class="date-filter"
             />
-          </IconField>
+            <Button 
+              v-if="dateRange" 
+              icon="pi pi-times" 
+              @click="clearFilters" 
+              severity="secondary"
+              text
+              rounded
+              aria-label="Clear filters"
+            />
+          </div>
         </div>
         <div class="header-right">
           <div class="user-profile">
@@ -417,7 +285,7 @@ const getZScoreClass = (zScore: number) => {
           <!-- Composite Metrics Chart -->
           <Card class="main-chart-card">
             <template #content>
-              <CompositeMetricsChart />
+              <CompositeMetricsChart :startDate="startDate" :endDate="endDate" />
             </template>
           </Card>
 
@@ -455,11 +323,6 @@ const getZScoreClass = (zScore: number) => {
                 class="anomalies-table"
                 stripedRows
               >
-                <Column field="round" header="Round" sortable>
-                  <template #body="slotProps">
-                    <span class="round-cell">#{{ slotProps.data.round }}</span>
-                  </template>
-                </Column>
                 <Column field="time" header="Time" sortable>
                   <template #body="slotProps">
                     <span class="time-cell">{{ formatDateTime(slotProps.data.time) }}</span>
@@ -690,7 +553,28 @@ const getZScoreClass = (zScore: number) => {
 
 .header-center {
   flex: 1;
-  max-width: 400px;
+  max-width: 500px;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.date-filter {
+  flex: 1;
+}
+
+.date-filter :deep(.p-calendar) {
+  width: 100%;
+}
+
+.date-filter :deep(.p-inputtext) {
+  border-radius: 12px;
+  font-size: 0.875rem;
+  padding: 0.625rem 1rem;
 }
 
 .header-center :deep(.p-iconfield) {

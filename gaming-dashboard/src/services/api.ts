@@ -72,6 +72,55 @@ export interface NotificationsResponse {
   unread: number
 }
 
+// Composite Metrics Types
+export interface CompositeChartData {
+  timestamps: string[]
+  rounds: number[]
+  stakeZScores: number[]
+  payoutZScores: number[]
+  houseNetZScores: number[]
+  dbAnomalies: number[]
+  anomalyIndices: number[]
+}
+
+export interface DBSCANNotification {
+  id: number
+  type: string
+  severity: 'critical' | 'high' | 'medium' | 'low'
+  timestamp: string
+  metrics: {
+    stakeZScore: number
+    payoutZScore: number
+    houseNetZScore: number
+  }
+  message: string
+}
+
+export interface DBSCANTableRecord {
+  id: number
+  round: number
+  time: string
+  stake: number
+  payout: number
+  houseNet: number
+  stakeZScore: number
+  payoutZScore: number
+  houseNetZScore: number
+  dbAnomaly: number
+  dbCluster: number
+  severity: string
+  gamers: number
+  skins: number
+}
+
+export interface CompositeStats {
+  dbscanAnomalies: number
+  avgHouseNet: number
+  totalRounds: number
+  normalPoints: number
+  clusterCount: number
+}
+
 class ApiService {
   private baseUrl: string
 
@@ -166,6 +215,83 @@ class ApiService {
     if (!response.ok) {
       throw new Error('Failed to delete notification')
     }
+  }
+
+  // Composite Metrics APIs
+  async getCompositeChartData(
+    limit: number = 100,
+    startDate?: string,
+    endDate?: string
+  ): Promise<CompositeChartData> {
+    const params = new URLSearchParams({ limit: limit.toString() })
+    if (startDate) params.append('start_date', startDate)
+    if (endDate) params.append('end_date', endDate)
+    
+    const response = await fetch(
+      `${this.baseUrl}/api/composite/chart-data?${params.toString()}`
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch composite chart data')
+    }
+    return response.json()
+  }
+
+  async getDBSCANNotifications(
+    limit: number = 5,
+    startDate?: string,
+    endDate?: string
+  ): Promise<DBSCANNotification[]> {
+    const params = new URLSearchParams({ limit: limit.toString() })
+    if (startDate) params.append('start_date', startDate)
+    if (endDate) params.append('end_date', endDate)
+    
+    const response = await fetch(
+      `${this.baseUrl}/api/composite/notifications?${params.toString()}`
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch DBSCAN notifications')
+    }
+    return response.json()
+  }
+
+  async getDBSCANTable(
+    limit: number = 20,
+    showAnomaliesOnly: boolean = false,
+    startDate?: string,
+    endDate?: string
+  ): Promise<DBSCANTableRecord[]> {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      show_anomalies_only: showAnomaliesOnly.toString()
+    })
+    if (startDate) params.append('start_date', startDate)
+    if (endDate) params.append('end_date', endDate)
+    
+    const response = await fetch(
+      `${this.baseUrl}/api/composite/table?${params.toString()}`
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch DBSCAN table data')
+    }
+    return response.json()
+  }
+
+  async getCompositeStats(
+    startDate?: string,
+    endDate?: string
+  ): Promise<CompositeStats> {
+    const params = new URLSearchParams()
+    if (startDate) params.append('start_date', startDate)
+    if (endDate) params.append('end_date', endDate)
+    const queryString = params.toString()
+    
+    const response = await fetch(
+      `${this.baseUrl}/api/composite/stats${queryString ? `?${queryString}` : ''}`
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch composite stats')
+    }
+    return response.json()
   }
 }
 
