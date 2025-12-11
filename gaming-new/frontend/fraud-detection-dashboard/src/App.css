@@ -1,0 +1,243 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.App {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  border: 2px solid #f8fafc;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Professional table styles */
+.professional-table {
+  @apply bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden;
+}
+
+.professional-table-header {
+  @apply bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200;
+}
+
+.professional-table-header th {
+  @apply px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+}
+
+.professional-table-header th.sortable {
+  @apply cursor-pointer select-none hover:bg-gray-200 active:bg-gray-300;
+}
+
+.professional-table-header th.sortable:hover {
+  @apply text-gray-900;
+}
+
+.professional-table tbody tr {
+  @apply transition-all duration-200 ease-in-out;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.professional-table tbody tr:hover {
+  @apply bg-blue-50 shadow-sm;
+  transform: scale(1.002);
+}
+
+.professional-table tbody tr.selected {
+  @apply bg-blue-100 ring-2 ring-blue-500 ring-opacity-50;
+}
+
+.professional-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.professional-table tbody td {
+  @apply px-6 py-4 text-sm text-gray-900;
+  white-space: nowrap;
+}
+
+.professional-table tbody td.wrap {
+  white-space: normal;
+}
+
+/* Status badges */
+.status-badge {
+  @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shadow-sm;
+  transition: all 0.2s ease;
+}
+
+.status-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.status-badge.critical {
+  @apply bg-red-100 text-red-800 border border-red-200;
+}
+
+.status-badge.high {
+  @apply bg-orange-100 text-orange-800 border border-orange-200;
+}
+
+.status-badge.medium {
+  @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+}
+
+.status-badge.low {
+  @apply bg-green-100 text-green-800 border border-green-200;
+}
+
+.status-badge.info {
+  @apply bg-blue-100 text-blue-800 border border-blue-200;
+}
+
+/* Progress bars */
+.progress-bar {
+  @apply relative w-full h-2 bg-gray-200 rounded-full overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-300 ease-out;
+  background: linear-gradient(90deg, currentColor, color-mix(in srgb, currentColor 80%, white));
+}
+
+.progress-bar-fill.critical {
+  @apply text-red-500;
+}
+
+.progress-bar-fill.high {
+  @apply text-orange-500;
+}
+
+.progress-bar-fill.medium {
+  @apply text-yellow-500;
+}
+
+.progress-bar-fill.low {
+  @apply text-green-500;
+}
+
+/* Action buttons */
+.action-button {
+  @apply inline-flex items-center justify-center p-2 rounded-lg transition-all duration-200 ease-in-out;
+}
+
+.action-button:hover {
+  @apply scale-105 shadow-lg;
+  transform: translateY(-2px) scale(1.05);
+}
+
+.action-button.primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.action-button.secondary {
+  @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+.action-button.danger {
+  @apply bg-red-100 text-red-700 hover:bg-red-200;
+}
+
+/* Card containers */
+.card-container {
+  @apply bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden;
+  transition: all 0.3s ease;
+}
+
+.card-container:hover {
+  @apply shadow-lg border-gray-200;
+  transform: translateY(-2px);
+}
+
+.card-header {
+  @apply p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white;
+}
+
+.card-content {
+  @apply p-6;
+}
+
+/* Sort indicators */
+.sort-indicator {
+  @apply inline-block ml-2 text-gray-400 transition-colors duration-200;
+}
+
+.sort-indicator.active {
+  @apply text-blue-600;
+}
+
+/* Filter and search inputs */
+.filter-input {
+  @apply px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200;
+}
+
+.filter-input:focus {
+  @apply shadow-lg;
+  transform: scale(1.02);
+}
+
+/* Export button */
+.export-button {
+  @apply flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-medium shadow-sm;
+  transition: all 0.2s ease;
+}
+
+.export-button:hover {
+  @apply from-blue-700 to-blue-800 shadow-lg;
+  transform: translateY(-1px);
+}
+
+/* Chart tooltips */
+.recharts-tooltip-wrapper {
+  z-index: 1000;
+}
