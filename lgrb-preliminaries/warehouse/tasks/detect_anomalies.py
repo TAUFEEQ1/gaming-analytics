@@ -1,5 +1,10 @@
 """
-Detect anomalies using trained hybrid models with statistical outlier detection.
+Detect anomalies using Isolation Forest with regression predictions as context.
+
+For all operators:
+- Isolation Forest flags anomalies (primary detection method)
+- Regression provides expected stake baseline (contextual information)
+- Both outputs reported together for decision maker
 """
 import luigi
 import pandas as pd
@@ -9,12 +14,9 @@ import joblib
 
 class DetectAnomalies(luigi.Task):
     """
-    Detect anomalies using hybrid approach:
-    - Regression operators: Statistical outlier detection (90th percentile of prediction errors)
-    - Anomaly operators: Isolation Forest with stake contribution analysis
+    Detect anomalies using Isolation Forest for ALL operators.
+    Regression predictions included as contextual information only.
     """
-    
-    deviation_threshold = luigi.FloatParameter(default=0.75)
     
     def requires(self):
         from warehouse.tasks.train_hybrid_models import TrainHybridModels
@@ -26,9 +28,7 @@ class DetectAnomalies(luigi.Task):
     
     def output(self):
         return {
-            'regression_anomalies': luigi.LocalTarget('warehouse/data/regression_anomalies.csv'),
-            'isolation_anomalies': luigi.LocalTarget('warehouse/data/isolation_anomalies.csv'),
-            'all_anomalies': luigi.LocalTarget('warehouse/data/all_anomalies.csv'),
+            'anomalies_with_context': luigi.LocalTarget('warehouse/data/anomalies_with_context.csv'),
             'anomaly_summary': luigi.LocalTarget('warehouse/data/anomaly_summary.csv')
         }
     
@@ -40,197 +40,159 @@ class DetectAnomalies(luigi.Task):
         regression_models = joblib.load(self.requires()['models'].output()['regression_models'].path)
         anomaly_models = joblib.load(self.requires()['models'].output()['anomaly_models'].path)
         
-        # Load operator classification
+        # Load operator info
         classification_df = pd.read_csv(self.requires()['models'].output()['operator_classification'].path)
-        regression_ops = classification_df[classification_df['model_type'] == 'regression']['operator'].tolist()
-        anomaly_ops = classification_df[classification_df['model_type'] == 'anomaly_detection']['operator'].tolist()
-        
-        # Get tier mapping
+        all_operators = classification_df['operator'].tolist()
         operator_to_tier = dict(zip(classification_df['operator'], classification_df['tier']))
+        r2_scores = dict(zip(classification_df['operator'], classification_df['r2_score']))
+        
         df['tier'] = df['operator'].map(operator_to_tier)
         
         print(f"\n{'='*80}")
-        print("ANOMALY DETECTION")
+        print("ANOMALY DETECTION WITH CONTEXTUAL REPORTING")
         print(f"{'='*80}")
         print(f"Total records: {len(df):,}")
-        print(f"Regression operators: {len(regression_ops)}")
-        print(f"Anomaly detection operators: {len(anomaly_ops)}")
+        print(f"Operators: {len(all_operators)}")
+        print(f"\nStrategy: Isolation Forest for anomaly detection")
+        print(f"          Regression for contextual baseline")
         
-        # Detect regression anomalies
-        print(f"\n--- Detecting Regression Anomalies ---")
-        regression_anomalies = self._detect_regression_anomalies(
-            df, regression_ops, regression_models, operator_to_tier
-        )
-        
-        # Detect isolation forest anomalies
-        print(f"\n--- Detecting Isolation Forest Anomalies ---")
-        isolation_anomalies = self._detect_isolation_anomalies(
-            df, anomaly_ops, anomaly_models
+        # Detect anomalies with full context
+        print(f"\n--- Detecting Anomalies (All Operators) ---")
+        anomalies_with_context = self._detect_anomalies_with_context(
+            df, all_operators, regression_models, anomaly_models, operator_to_tier, r2_scores
         )
         
         # Save results
-        regression_anomalies.to_csv(self.output()['regression_anomalies'].path, index=False)
-        isolation_anomalies.to_csv(self.output()['isolation_anomalies'].path, index=False)
-        
-        # Combine all anomalies
-        all_anomalies = pd.concat([
-            regression_anomalies[['operator', 'stake_real_money', 'anomaly_type', 'anomaly_score', 
-                                  'predicted_stake', 'deviation_pct', 'stake_z_score']],
-            isolation_anomalies[['operator', 'stake_real_money', 'anomaly_type', 'anomaly_score', 
-                                'predicted_stake', 'deviation_pct', 'stake_z_score']]
-        ], ignore_index=True)
-        all_anomalies.to_csv(self.output()['all_anomalies'].path, index=False)
+        anomalies_with_context.to_csv(self.output()['anomalies_with_context'].path, index=False)
         
         # Create summary
-        summary = self._create_summary(regression_anomalies, isolation_anomalies, df)
+        summary = self._create_summary(anomalies_with_context, df, all_operators)
         summary.to_csv(self.output()['anomaly_summary'].path, index=False)
         
         print(f"\n{'='*80}")
         print("ANOMALY DETECTION COMPLETE")
         print(f"{'='*80}")
-        print(f"Regression anomalies: {len(regression_anomalies):,} ({len(regression_anomalies)/len(df[df['operator'].isin(regression_ops)])*100:.1f}%)")
-        print(f"Isolation anomalies: {len(isolation_anomalies):,} ({len(isolation_anomalies)/len(df[df['operator'].isin(anomaly_ops)])*100:.1f}%)")
-        print(f"Total anomalies: {len(all_anomalies):,} ({len(all_anomalies)/len(df)*100:.1f}%)")
-        print(f"\n✓ Results saved to: warehouse/data/all_anomalies.csv")
+        print(f"Total anomalies flagged: {len(anomalies_with_context):,} ({len(anomalies_with_context)/len(df)*100:.1f}%)")
+        print(f"Each record includes:")
+        print(f"  - Isolation Forest anomaly flag (primary)")
+        print(f"  - Regression baseline prediction (context)")
+        print(f"  - Deviation from expected (context)")
+        print(f"  - Stake z-score (contribution)")
+        print(f"\n✓ Results saved to: warehouse/data/anomalies_with_context.csv")
     
-    def _detect_regression_anomalies(self, df, regression_ops, regression_models, operator_to_tier):
-        """Detect anomalies in regression operators using statistical outlier detection"""
-        df_reg = df[df['operator'].isin(regression_ops)].copy()
-        df_encoded = pd.get_dummies(df_reg, columns=['operator', 'game_type'], drop_first=False)
+    def _detect_anomalies_with_context(self, df, all_operators, regression_models, anomaly_models, operator_to_tier, r2_scores):
+        """
+        Detect anomalies using Isolation Forest, with regression predictions as context.
         
-        # Load operator R² scores
-        classification = pd.read_csv('warehouse/data/operator_classification.csv')
-        r2_scores = dict(zip(classification['operator'], classification['r2_score']))
-        
+        Returns records flagged as anomalies with:
+        - Anomaly flag (from Isolation Forest)
+        - Expected stake (from regression)
+        - Deviation from expected
+        - Stake contribution (z-score)
+        """
         anomalies = []
         
-        for operator in regression_ops:
+        for operator in all_operators:
             tier = operator_to_tier[operator]
             
-            if tier not in regression_models:
+            # Check if operator has both models
+            if tier not in regression_models or operator not in anomaly_models:
+                print(f"  Warning: {operator} missing models, skipping")
                 continue
             
-            model_info = regression_models[tier]
-            model = model_info['model']
-            feature_cols = model_info['feature_cols']
-            
-            op_data = df_encoded[df_encoded[f'operator_{operator}'] == 1].copy()
-            
+            # Get operator data
+            op_data = df[df['operator'] == operator].copy()
             if len(op_data) == 0:
                 continue
             
-            X = op_data[feature_cols]
-            y_true = op_data['stake_real_money']
-            y_pred = model.predict(X)
+            # 1. Get regression predictions (context)
+            df_reg_encoded = pd.get_dummies(op_data, columns=['operator', 'game_type'], drop_first=False)
+            regression_info = regression_models[tier]
+            regression_model = regression_info['model']
+            feature_cols = regression_info['feature_cols']
             
-            # Calculate deviations
-            deviations = np.abs((y_true - y_pred) / y_pred)
+            # Ensure all expected columns are present
+            for col in feature_cols:
+                if col not in df_reg_encoded.columns:
+                    df_reg_encoded[col] = 0
             
-            # Statistical outlier detection: Flag top 10% worst predictions
-            # Adapts to each operator's actual error distribution
-            percentile_threshold = np.percentile(deviations, 90)
-            adaptive_threshold = max(self.deviation_threshold, percentile_threshold)
+            X_reg = df_reg_encoded[feature_cols]
+            predicted_stakes = regression_model.predict(X_reg)
             
-            # Flag anomalies
-            anomaly_mask = deviations > adaptive_threshold
+            # 2. Run Isolation Forest (anomaly detection)
+            anomaly_info = anomaly_models[operator]
+            iso_model = anomaly_info['model']
+            scaler = anomaly_info['scaler']
+            iso_feature_cols = anomaly_info['feature_cols']
             
-            r2 = r2_scores.get(operator, 0.75)
+            df_iso_encoded = pd.get_dummies(op_data, columns=['game_type'], drop_first=False)
             
-            for idx in op_data[anomaly_mask].index:
-                anomalies.append({
-                    'operator': operator,
-                    'tier': tier,
-                    'stake_real_money': y_true.loc[idx],
-                    'predicted_stake': y_pred[op_data.index.get_loc(idx)],
-                    'deviation_pct': deviations.loc[idx],
-                    'deviation_threshold_used': adaptive_threshold,
-                    'r2_score': r2,
-                    'anomaly_type': 'regression_deviation',
-                    'anomaly_score': -deviations.loc[idx],  # Negative for consistency
-                    'stake_z_score': None
-                })
-        
-        print(f"  Found {len(anomalies)} regression anomalies")
-        return pd.DataFrame(anomalies)
-    
-    def _detect_isolation_anomalies(self, df, anomaly_ops, anomaly_models):
-        """Detect anomalies using Isolation Forest and calculate stake contribution"""
-        df_anom = df[df['operator'].isin(anomaly_ops)].copy()
-        df_encoded = pd.get_dummies(df_anom, columns=['game_type'], drop_first=False)
-        
-        anomalies = []
-        
-        for operator in anomaly_ops:
-            if operator not in anomaly_models:
-                continue
+            # Ensure all expected columns are present
+            for col in iso_feature_cols:
+                if col not in df_iso_encoded.columns:
+                    df_iso_encoded[col] = 0
             
-            model_info = anomaly_models[operator]
-            model = model_info['model']
-            scaler = model_info['scaler']
-            feature_cols = model_info['feature_cols']
+            X_iso = df_iso_encoded[iso_feature_cols].fillna(0)
+            X_iso_scaled = scaler.transform(X_iso)
             
-            op_data = df_encoded[df_encoded['operator'] == operator].copy()
+            predictions = iso_model.predict(X_iso_scaled)
+            anomaly_scores = iso_model.score_samples(X_iso_scaled)
             
-            if len(op_data) == 0:
-                continue
-            
-            X = op_data[feature_cols].fillna(0)
-            X_scaled = scaler.transform(X)
-            
-            # Predict anomalies
-            predictions = model.predict(X_scaled)
-            scores = model.score_samples(X_scaled)
-            
-            # Get anomalies
-            anomaly_mask = predictions == -1
-            
-            if anomaly_mask.sum() == 0:
-                continue
-            
-            # Calculate stake z-scores for anomalies
+            # 3. Calculate stake z-scores
             normal_mask = predictions == 1
             if normal_mask.sum() > 0:
                 normal_stakes = op_data.loc[normal_mask, 'stake_real_money']
                 normal_mean = normal_stakes.mean()
                 normal_std = normal_stakes.std()
+            else:
+                normal_mean = op_data['stake_real_money'].mean()
+                normal_std = op_data['stake_real_money'].std()
+            
+            # 4. Build results for anomalies only
+            anomaly_mask = predictions == -1
+            for i, idx in enumerate(op_data.index):
+                if not anomaly_mask[i]:
+                    continue
                 
-                for idx in op_data[anomaly_mask].index:
-                    stake_val = op_data.loc[idx, 'stake_real_money']
-                    stake_z_score = (stake_val - normal_mean) / normal_std if normal_std > 0 else 0
-                    
-                    anomalies.append({
-                        'operator': operator,
-                        'tier': df.loc[df['operator'] == operator, 'tier'].iloc[0],
-                        'stake_real_money': stake_val,
-                        'predicted_stake': normal_mean,
-                        'deviation_pct': abs((stake_val - normal_mean) / normal_mean) if normal_mean > 0 else 0,
-                        'anomaly_type': 'isolation_forest',
-                        'anomaly_score': scores[op_data.index.get_loc(idx)],
-                        'stake_z_score': stake_z_score
-                    })
+                stake_val = op_data.loc[idx, 'stake_real_money']
+                predicted_stake = predicted_stakes[i]
+                deviation = abs((stake_val - predicted_stake) / predicted_stake) if predicted_stake > 0 else 0
+                stake_z_score = (stake_val - normal_mean) / normal_std if normal_std > 0 else 0
+                
+                anomalies.append({
+                    'operator': operator,
+                    'tier': tier,
+                    'stake_real_money': stake_val,
+                    'expected_stake_regression': predicted_stake,
+                    'regression_r2': r2_scores.get(operator, 0),
+                    'deviation_pct': deviation,
+                    'anomaly_score_if': anomaly_scores[i],
+                    'stake_z_score': stake_z_score,
+                    'anomaly_flagged_by': 'isolation_forest'
+                })
+            
+            print(f"  {operator}: {anomaly_mask.sum()}/{len(op_data)} flagged ({anomaly_mask.sum()/len(op_data)*100:.1f}%)")
         
-        print(f"  Found {len(anomalies)} isolation forest anomalies")
+        print(f"\n  Total anomalies: {len(anomalies)}")
         return pd.DataFrame(anomalies)
     
-    def _create_summary(self, regression_anomalies, isolation_anomalies, df):
+    def _create_summary(self, anomalies_df, df, all_operators):
         """Create summary statistics by operator"""
         summary_data = []
         
-        for operator in df['operator'].unique():
-            reg_anom = regression_anomalies[regression_anomalies['operator'] == operator]
-            iso_anom = isolation_anomalies[isolation_anomalies['operator'] == operator]
-            
+        for operator in all_operators:
+            op_anomalies = anomalies_df[anomalies_df['operator'] == operator]
             total_records = len(df[df['operator'] == operator])
-            total_anomalies = len(reg_anom) + len(iso_anom)
             
-            summary_data.append({
-                'operator': operator,
-                'total_records': total_records,
-                'regression_anomalies': len(reg_anom),
-                'isolation_anomalies': len(iso_anom),
-                'total_anomalies': total_anomalies,
-                'anomaly_rate': total_anomalies / total_records if total_records > 0 else 0
-            })
+            if total_records > 0:
+                summary_data.append({
+                    'operator': operator,
+                    'total_records': total_records,
+                    'anomalies_flagged': len(op_anomalies),
+                    'anomaly_rate': len(op_anomalies) / total_records,
+                    'median_deviation_pct': op_anomalies['deviation_pct'].median() if len(op_anomalies) > 0 else 0,
+                    'median_stake_z_score': op_anomalies['stake_z_score'].median() if len(op_anomalies) > 0 else 0
+                })
         
         summary_df = pd.DataFrame(summary_data)
         summary_df = summary_df.sort_values('anomaly_rate', ascending=False)

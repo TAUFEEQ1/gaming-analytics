@@ -1,7 +1,10 @@
 """
-Train hybrid models: Linear Regression for predictable operators, Isolation Forest for volatile ones.
-Uses DBSCAN clustering to segment operators into tiers, then trains tier-based regression models
-for operators with R² > 0.75 and isolation forest models for volatile operators.
+Train dual models for all operators: Regression for context + Isolation Forest for anomaly detection.
+
+Strategy:
+- Regression models provide expected stake baseline (contextual information)
+- Isolation Forest flags anomalies (multivariate outlier detection)
+- Both outputs reported to decision maker - no automatic anomaly flagging by regression
 """
 import luigi
 import pandas as pd
@@ -18,12 +21,11 @@ from pathlib import Path
 
 class TrainHybridModels(luigi.Task):
     """
-    Train hybrid models based on operator R² performance:
-    - Linear Regression for operators with R² > 0.75
-    - Isolation Forest for operators with R² ≤ 0.75
+    Train both regression and isolation forest for ALL operators:
+    - Tier-based Linear Regression: Provides expected stake for context
+    - Per-operator Isolation Forest: Flags multivariate anomalies
     """
     
-    r2_threshold = luigi.FloatParameter(default=0.75)
     random_state = luigi.IntParameter(default=42)
     
     def requires(self):
@@ -53,38 +55,34 @@ class TrainHybridModels(luigi.Task):
         operator_to_tier = self._assign_tiers(df)
         df['tier'] = df['operator'].map(operator_to_tier)
         
-        # Step 2: Evaluate R² for each operator using tier-based regression
+        # Step 2: Evaluate R² for each operator (for reporting only)
         print(f"\n--- Step 2: Evaluate Operator Performance ---")
         operator_r2_scores = self._evaluate_operators(df)
         
-        # Step 3: Classify operators
-        print(f"\n--- Step 3: Classify Operators ---")
-        regression_ops = [op for op, r2 in operator_r2_scores.items() if r2 > self.r2_threshold]
-        anomaly_ops = [op for op, r2 in operator_r2_scores.items() if r2 <= self.r2_threshold]
+        # Step 3: Train regression models for ALL operators (contextual information)
+        print(f"\n--- Step 3: Train Tier-Based Regression Models (All Operators) ---")
+        all_operators = list(df['operator'].unique())
+        regression_models = self._train_regression_models(df, all_operators)
         
-        print(f"Regression operators (R² > {self.r2_threshold}): {len(regression_ops)}")
-        print(f"Anomaly detection operators (R² ≤ {self.r2_threshold}): {len(anomaly_ops)}")
-        
-        # Step 4: Train regression models
-        print(f"\n--- Step 4: Train Tier-Based Regression Models ---")
-        regression_models = self._train_regression_models(df, regression_ops)
-        
-        # Step 5: Train anomaly detection models
-        print(f"\n--- Step 5: Train Isolation Forest Models ---")
-        anomaly_models = self._train_anomaly_models(df, anomaly_ops)
+        # Step 4: Train Isolation Forest for ALL operators (anomaly detection)
+        print(f"\n--- Step 4: Train Isolation Forest Models (All Operators) ---")
+        anomaly_models = self._train_anomaly_models(df, all_operators)
         
         # Save models
         Path('warehouse/data/models').mkdir(parents=True, exist_ok=True)
         joblib.dump(regression_models, self.output()['regression_models'].path)
         joblib.dump(anomaly_models, self.output()['anomaly_models'].path)
         
-        # Save operator classification
+        # Save operator info - all operators now have both models
         classification_df = pd.DataFrame([
-            {'operator': op, 'model_type': 'regression', 'r2_score': operator_r2_scores[op], 'tier': operator_to_tier[op]}
-            for op in regression_ops
-        ] + [
-            {'operator': op, 'model_type': 'anomaly_detection', 'r2_score': operator_r2_scores[op], 'tier': operator_to_tier[op]}
-            for op in anomaly_ops
+            {
+                'operator': op,
+                'tier': operator_to_tier[op],
+                'r2_score': operator_r2_scores[op],
+                'has_regression': True,
+                'has_isolation_forest': True
+            }
+            for op in all_operators
         ])
         classification_df = classification_df.sort_values('r2_score', ascending=False)
         classification_df.to_csv(self.output()['operator_classification'].path, index=False)
@@ -93,12 +91,11 @@ class TrainHybridModels(luigi.Task):
         performance_df = pd.DataFrame([
             {
                 'operator': op,
-                'model_type': 'regression' if op in regression_ops else 'anomaly_detection',
                 'tier': operator_to_tier[op],
                 'r2_score': operator_r2_scores[op],
                 'n_samples': len(df[df['operator'] == op])
             }
-            for op in df['operator'].unique()
+            for op in all_operators
         ])
         performance_df = performance_df.sort_values('r2_score', ascending=False)
         performance_df.to_csv(self.output()['model_performance'].path, index=False)
@@ -106,8 +103,9 @@ class TrainHybridModels(luigi.Task):
         print(f"\n{'='*80}")
         print("TRAINING COMPLETE")
         print(f"{'='*80}")
-        print(f"✓ Regression models: {len(regression_models)} tiers")
-        print(f"✓ Anomaly models: {len(anomaly_models)} operators")
+        print(f"✓ Regression models: {len(regression_models)} tiers (all operators)")
+        print(f"✓ Isolation Forest models: {len(anomaly_models)} operators")
+        print(f"✓ All operators have both models for dual reporting")
         print(f"✓ Files saved to: warehouse/data/")
     
     def _assign_tiers(self, df):
