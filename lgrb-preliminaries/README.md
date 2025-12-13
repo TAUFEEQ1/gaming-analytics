@@ -26,6 +26,7 @@ python run_anomaly_detection.py
 ```
 
 This executes the complete pipeline:
+
 1. Filters data (operators with ≥100 records)
 2. Trains hybrid models using DBSCAN operator clustering
 3. Detects anomalies using statistical thresholds
