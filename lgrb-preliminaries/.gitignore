@@ -1,0 +1,8 @@
+venv/
+
+# PII mapping files - DO NOT COMMIT
+warehouse/data/mappings/
+
+lotterries_plain_dataset.csv
+
+warehouse/data/filtered_game_summary.csv

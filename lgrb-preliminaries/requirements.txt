@@ -1,0 +1,23 @@
+# Gaming Operator Anomaly Detection Pipeline
+# Python 3.12+ required
+
+# Data Processing
+pandas==2.1.4
+numpy==1.25.2
+
+# Machine Learning
+scikit-learn==1.3.2  # LinearRegression, IsolationForest, DBSCAN
+
+# Workflow Orchestration
+luigi==3.6.0
+
+# Model Persistence
+joblib>=1.3.0
+
+# Optional: Data Serialization
+pyarrow==14.0.1
+
+# Optional: Development/Analysis (uncomment if needed)
+# matplotlib==3.8.2
+# seaborn==0.13.0
+# jupyter==1.0.0
