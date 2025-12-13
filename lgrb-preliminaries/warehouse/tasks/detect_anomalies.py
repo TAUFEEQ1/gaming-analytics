@@ -119,6 +119,9 @@ class DetectAnomalies(luigi.Task):
             X_reg = df_reg_encoded[feature_cols]
             predicted_stakes = regression_model.predict(X_reg)
             
+            # Clip negative predictions to 0 (can't have negative stake)
+            predicted_stakes = np.maximum(predicted_stakes, 0)
+            
             # 2. Run Isolation Forest (anomaly detection)
             anomaly_info = anomaly_models[operator]
             iso_model = anomaly_info['model']
@@ -148,16 +151,16 @@ class DetectAnomalies(luigi.Task):
                 normal_mean = op_data['stake_real_money'].mean()
                 normal_std = op_data['stake_real_money'].std()
             
-            # 4. Build results for anomalies only
+            # 4. Build results for ALL records (not just anomalies)
             anomaly_mask = predictions == -1
             for i, idx in enumerate(op_data.index):
-                if not anomaly_mask[i]:
-                    continue
-                
                 stake_val = op_data.loc[idx, 'stake_real_money']
                 predicted_stake = predicted_stakes[i]
                 deviation = abs((stake_val - predicted_stake) / predicted_stake) if predicted_stake > 0 else 0
                 stake_z_score = (stake_val - normal_mean) / normal_std if normal_std > 0 else 0
+                
+                # Flag anomalies, but include all records
+                flagged_by = 'isolation_forest' if anomaly_mask[i] else 'none'
                 
                 anomalies.append({
                     'operator': operator,
@@ -168,7 +171,7 @@ class DetectAnomalies(luigi.Task):
                     'deviation_pct': deviation,
                     'anomaly_score_if': anomaly_scores[i],
                     'stake_z_score': stake_z_score,
-                    'anomaly_flagged_by': 'isolation_forest'
+                    'anomaly_flagged_by': flagged_by
                 })
             
             print(f"  {operator}: {anomaly_mask.sum()}/{len(op_data)} flagged ({anomaly_mask.sum()/len(op_data)*100:.1f}%)")

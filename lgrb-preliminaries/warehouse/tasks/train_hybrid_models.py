@@ -196,10 +196,11 @@ class TrainHybridModels(luigi.Task):
     def _train_regression_models(self, df, regression_ops):
         """Train tier-based regression models"""
         df_reg = df[df['operator'].isin(regression_ops)].copy()
-        df_encoded = pd.get_dummies(df_reg, columns=['operator', 'game_type'], drop_first=False)
+        # Don't include operator dummies - they're already grouped by tier!
+        df_encoded = pd.get_dummies(df_reg, columns=['game_type'], drop_first=False)
         
         feature_cols = [col for col in df_encoded.columns 
-                       if col not in ['stake_real_money', 'tier', 'timestamp_end']]
+                       if col not in ['stake_real_money', 'tier', 'timestamp_end', 'operator']]
         
         tier_models = {}
         
@@ -232,12 +233,22 @@ class TrainHybridModels(luigi.Task):
         return tier_models
     
     def _train_anomaly_models(self, df, anomaly_ops):
-        """Train per-operator Isolation Forest models"""
+        """Train per-operator Isolation Forest models with risk-based contamination"""
         df_anom = df[df['operator'].isin(anomaly_ops)].copy()
         df_encoded = pd.get_dummies(df_anom, columns=['game_type'], drop_first=False)
         
         feature_cols = [col for col in df_encoded.columns 
                        if col not in ['operator', 'tier', 'timestamp_end']]
+        
+        # Tier-based contamination rates (higher risk = more scrutiny)
+        tier_contamination = {
+            'very_high': 0.05,  # Large, established operators
+            'high': 0.08,
+            'mid': 0.10,
+            'low': 0.15,        # Smaller operators, higher risk
+            'zero': 0.20,       # New/small betting houses, highest risk
+            'noise': 0.15
+        }
         
         anomaly_models = {}
         
@@ -247,13 +258,17 @@ class TrainHybridModels(luigi.Task):
             if len(op_data) < 20:
                 continue
             
+            # Get tier for this operator
+            tier = df[df['operator'] == operator]['tier'].iloc[0]
+            contamination = tier_contamination.get(tier, 0.10)
+            
             X = op_data[feature_cols].fillna(0)
             
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
             
             iso_forest = IsolationForest(
-                contamination=0.1,
+                contamination=contamination,
                 random_state=self.random_state,
                 n_estimators=100
             )
@@ -262,9 +277,11 @@ class TrainHybridModels(luigi.Task):
             anomaly_models[operator] = {
                 'model': iso_forest,
                 'scaler': scaler,
-                'feature_cols': feature_cols
+                'feature_cols': feature_cols,
+                'contamination': contamination,
+                'tier': tier
             }
             
-            print(f"  {operator}: n={len(op_data)}")
+            print(f"  {operator} ({tier}): n={len(op_data)}, contamination={contamination*100:.0f}%")
         
         return anomaly_models
