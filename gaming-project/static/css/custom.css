@@ -15,7 +15,7 @@
 }
 
 body {
-    font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     background-color: #f5f8fb;
     font-size: 1rem;
     color: #31344b;
@@ -30,6 +30,7 @@ body {
 
 /* Dashboard specific styling */
 h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', sans-serif;
     font-weight: 500;
 }
 
