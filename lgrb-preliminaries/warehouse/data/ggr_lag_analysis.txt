@@ -1,0 +1,50 @@
+
+================================================================================
+LAG ANALYSIS FOR GGR TIME-SERIES
+================================================================================
+
+AUTOCORRELATION FUNCTION (ACF):
+  Maximum lag tested: 30
+  Optimal lag selected: 6 days
+  
+ACF VALUES (first 14 lags):
+  Lag  1:  0.5107 ***
+  Lag  2:  0.2619 ***
+  Lag  3:  0.3230 ***
+  Lag  4:  0.3105 ***
+  Lag  5:  0.2159 ***
+  Lag  6:  0.2128 ***
+  Lag  7:  0.1990    
+  Lag  8:  0.1148    
+  Lag  9:  0.0348    
+  Lag 10:  0.0597    
+  Lag 11:  0.0855    
+  Lag 12:  0.0389    
+  Lag 13: -0.0070    
+  Lag 14:  0.0122    
+
+PARTIAL AUTOCORRELATION FUNCTION (PACF):
+  PACF indicates direct correlation after removing indirect effects
+  
+PACF VALUES (first 14 lags):
+  Lag  1:  0.5122 ***
+  Lag  2:  0.0016    
+  Lag  3:  0.2579 ***
+  Lag  4:  0.0725    
+  Lag  5:  0.0124    
+  Lag  6:  0.0751    
+  Lag  7:  0.0056    
+  Lag  8: -0.0539    
+  Lag  9: -0.0827    
+  Lag 10:  0.0200    
+  Lag 11:  0.0276    
+  Lag 12: -0.0185    
+  Lag 13: -0.0333    
+  Lag 14:  0.0149    
+
+INTERPRETATION:
+  - Optimal lag of 6 days suggests GGR has memory of approximately 6 days
+  - Significant ACF values (>0.2) indicate correlation with past values
+  - This lag will be used in the autoregressive model
+  
+================================================================================

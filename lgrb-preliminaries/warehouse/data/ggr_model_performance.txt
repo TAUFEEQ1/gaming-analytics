@@ -1,0 +1,36 @@
+
+================================================================================
+GGR TIME-SERIES ANALYSIS
+================================================================================
+
+MODEL: autoregression
+
+EVALUATION METRICS (on actual data only):
+  Days evaluated: 343
+  Mean Absolute Error (MAE): 122,291,407.07
+  Root Mean Squared Error (RMSE): 173,978,068.77
+  Mean Absolute Percentage Error (MAPE): 53.58%
+  R-squared: 0.9948
+
+DEVIATION STATISTICS:
+  Mean Deviation: -1,390,041.07
+  Std Dev of Deviation: 174,226,675.77
+  Min Deviation: -787,322,463.37
+  Max Deviation: 664,445,132.71
+
+TREND ANALYSIS:
+  Overall Trend: Decreasing (-2,626,206.85 per day)
+  Average GGR: 1,252,760,187.97
+  
+PATTERN ANALYSIS:
+  Weekend Average GGR: 1,865,433,398.32
+  Weekday Average GGR: 1,007,690,903.83
+  Weekend vs Weekday: +85.1%
+
+INTERPRETATION:
+  - MAPE shows average forecast error as percentage
+  - R-squared indicates how well the model explains GGR variance
+  - Trend shows long-term GGR direction over time period
+  - Pattern analysis reveals day-of-week effects
+
+================================================================================

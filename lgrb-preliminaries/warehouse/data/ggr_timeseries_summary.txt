@@ -1,0 +1,31 @@
+
+================================================================================
+GGR TIME-SERIES SUMMARY
+================================================================================
+
+DATE RANGE:
+  Start Date: 2024-12-30
+  End Date: 2025-12-07
+  Total Days: 343
+  Days with Data: 343 (100.0%)
+  Missing Days: 0 (0.0%)
+
+GGR STATISTICS (Days with Data):
+  Total GGR: 429,696,744,472.43
+  Mean Daily GGR: 1,252,760,187.97
+  Median Daily GGR: 897,731,142.28
+  Std Dev: 2,415,511,143.65
+  Min Daily GGR: -11,994,343,007.37
+  Max Daily GGR: 13,231,573,953.99
+
+REPORTING STATISTICS:
+  Avg Operators per Day: 18.9
+  Avg Reports per Day: 24.6
+  Max Operators in One Day: 26
+  Max Reports in One Day: 56
+
+DATA QUALITY:
+  Days with Zero GGR: 0
+  Days with Negative GGR: 57
+  
+================================================================================
