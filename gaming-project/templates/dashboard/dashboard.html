@@ -4,39 +4,34 @@
 {% block title %}Dashboard - NCEMS Analytics{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3">
         <div class="d-block mb-4 mb-md-0">
-            <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
-                <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
-                    <li class="breadcrumb-item">
-                        <a href="{% url 'home' %}">
-                            <i class="fas fa-home"></i>
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-                </ol>
-            </nav>
-            <h2 class="h4">Welcome, {{ user.username }}!</h2>
-            <p class="mb-0">Compliance and Enforcement Analytics Overview</p>
+            <h2 class="h4 fw-normal">Dashboard</h2>
+            <p class="mb-0 text-muted small">Compliance and Enforcement Management System Overview</p>
         </div>
     </div>
 
-    <!-- Stats Cards -->
+    <!-- Stats Cards Row -->
     <div class="row">
-        <div class="col-12 col-sm-6 col-xl-3 mb-4">
-            <div class="card border-0 shadow">
+        <div class="col-12 col-sm-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="row d-block d-xl-flex align-items-center">
                         <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
                             <div class="icon-shape icon-shape-primary rounded me-4 me-sm-0">
-                                <i class="fas fa-gamepad fa-2x"></i>
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path></svg>
                             </div>
                         </div>
                         <div class="col-12 col-xl-7 px-xl-0">
                             <div class="d-none d-sm-block">
-                                <h2 class="h5">Games Played</h2>
-                                <h3 class="fw-extrabold mb-1">0</h3>
+                                <h2 class="h6 text-gray-400 mb-0">Active Operators</h2>
+                                <h3 class="fw-extrabold mb-1">156</h3>
+                                <small class="text-success">
+                                    <svg class="icon icon-xxs text-success me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    12.5%
+                                </small>
+                                <small class="d-inline-flex text-gray-500 ms-1">Since last month</small>
                             </div>
                         </div>
                     </div>
@@ -44,19 +39,24 @@
             </div>
         </div>
         
-        <div class="col-12 col-sm-6 col-xl-3 mb-4">
-            <div class="card border-0 shadow">
+        <div class="col-12 col-sm-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="row d-block d-xl-flex align-items-center">
                         <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
                             <div class="icon-shape icon-shape-secondary rounded me-4 me-sm-0">
-                                <i class="fas fa-clock fa-2x"></i>
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
                             </div>
                         </div>
                         <div class="col-12 col-xl-7 px-xl-0">
                             <div class="d-none d-sm-block">
-                                <h2 class="h5">Total Hours</h2>
-                                <h3 class="fw-extrabold mb-1">0</h3>
+                                <h2 class="h6 text-gray-400 mb-0">Inspections Due</h2>
+                                <h3 class="fw-extrabold mb-1">23</h3>
+                                <small class="text-danger">
+                                    <svg class="icon icon-xxs text-danger me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                    2.5%
+                                </small>
+                                <small class="d-inline-flex text-gray-500 ms-1">Since last month</small>
                             </div>
                         </div>
                     </div>
@@ -64,39 +64,24 @@
             </div>
         </div>
         
-        <div class="col-12 col-sm-6 col-xl-3 mb-4">
-            <div class="card border-0 shadow">
+        <div class="col-12 col-sm-6 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="row d-block d-xl-flex align-items-center">
                         <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
                             <div class="icon-shape icon-shape-tertiary rounded me-4 me-sm-0">
-                                <i class="fas fa-trophy fa-2x"></i>
+                                <svg class="icon" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"></path></svg>
                             </div>
                         </div>
                         <div class="col-12 col-xl-7 px-xl-0">
                             <div class="d-none d-sm-block">
-                                <h2 class="h5">Achievements</h2>
-                                <h3 class="fw-extrabold mb-1">0</h3>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-12 col-sm-6 col-xl-3 mb-4">
-            <div class="card border-0 shadow">
-                <div class="card-body">
-                    <div class="row d-block d-xl-flex align-items-center">
-                        <div class="col-12 col-xl-5 text-xl-center mb-3 mb-xl-0 d-flex align-items-center justify-content-xl-center">
-                            <div class="icon-shape icon-shape-quaternary rounded me-4 me-sm-0">
-                                <i class="fas fa-star fa-2x"></i>
-                            </div>
-                        </div>
-                        <div class="col-12 col-xl-7 px-xl-0">
-                            <div class="d-none d-sm-block">
-                                <h2 class="h5">Win Rate</h2>
-                                <h3 class="fw-extrabold mb-1">0%</h3>
+                                <h2 class="h6 text-gray-400 mb-0">Licenses Issued</h2>
+                                <h3 class="fw-extrabold mb-1">89</h3>
+                                <small class="text-success">
+                                    <svg class="icon icon-xxs text-success me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                                    18.2%
+                                </small>
+                                <small class="d-inline-flex text-gray-500 ms-1">Since last month</small>
                             </div>
                         </div>
                     </div>
@@ -105,53 +90,221 @@
         </div>
     </div>
 
-    <!-- Recent Activity -->
+    <!-- Chart Section -->
     <div class="row">
         <div class="col-12 col-xl-8 mb-4">
-            <div class="card border-0 shadow">
-                <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h2 class="fs-5 fw-bold mb-0">Recent Activity</h2>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header d-flex flex-row align-items-center flex-0 border-bottom">
+                    <div class="d-block">
+                        <h2 class="fs-6 fw-bold mb-0">Sales Value</h2>
+                    </div>
+                    <div class="ms-auto">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-gray-500 dropdown-toggle" type="button" id="salesValueDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                Last 7 days
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="salesValueDropdown">
+                                <li><a class="dropdown-item" href="#">Last 7 days</a></li>
+                                <li><a class="dropdown-item" href="#">Last 30 days</a></li>
+                                <li><a class="dropdown-item" href="#">Last 90 days</a></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No recent activity to display. Start playing to see your stats!
+                    <div class="d-flex align-items-center mb-3">
+                        <div>
+                            <h2 class="h3 mb-0">$10,567</h2>
+                        </div>
+                        <div class="d-flex ms-auto text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-gray-500">Week</button>
+                                <button type="button" class="btn btn-outline-gray-500 active">Month</button>
+                                <button type="button" class="btn btn-outline-gray-500">Year</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Chart Placeholder -->
+                    <div class="ct-chart-sales-value ct-golden-section" style="height: 250px;">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <div class="text-center text-muted">
+                                <svg class="icon icon-xl text-gray-400 mb-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+                                <p class="mb-0">Chart data will be displayed here</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="col-12 col-xl-4 mb-4">
-            <div class="card border-0 shadow">
-                <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h2 class="fs-5 fw-bold mb-0">Quick Stats</h2>
-                        </div>
-                    </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-bottom">
+                    <h2 class="fs-6 fw-bold mb-0">Customers</h2>
                 </div>
                 <div class="card-body">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 pb-3">
-                            <div>
-                                <h3 class="h6 mb-0">Most Played</h3>
-                                <small class="text-muted">Game title</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="h6 mb-0">N/A</span>
+                    <h3 class="h1 mb-2">345k</h3>
+                    <div class="small mt-2 mb-3">
+                        <span class="text-muted">Feb 1 - Apr 1,</span>
+                        <span class="fw-bold text-dark">USA</span>
+                    </div>
+                    <div class="ct-chart-customers-evolution" style="height: 150px;">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <svg class="icon icon-lg text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"></path></svg>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center mt-3">
+                        <span class="me-2">
+                            <svg class="icon icon-sm text-success" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+                        </span>
+                        <small class="fw-bold text-success me-1">22%</small>
+                        <small class="text-muted">Since last month</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header border-bottom">
+                    <h2 class="fs-6 fw-bold mb-0">Revenue</h2>
+                </div>
+                <div class="card-body">
+                    <h3 class="h1 mb-2">$43,594</h3>
+                    <div class="small mt-2 mb-3">
+                        <span class="text-muted">Feb 1 - Apr 1,</span>
+                        <span class="fw-bold text-dark">USA</span>
+                    </div>
+                    <div class="ct-chart-revenue" style="height: 150px;">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <svg class="icon icon-lg text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path></svg>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center mt-3">
+                        <span class="me-2">
+                            <svg class="icon icon-sm text-danger" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                        </span>
+                        <small class="fw-bold text-danger me-1">2%</small>
+                        <small class="text-muted">Since last month</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Page Visits and Team Members -->
+    <div class="row">
+        <div class="col-12 col-xl-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-bottom d-flex align-items-center">
+                    <h2 class="fs-6 fw-bold mb-0">Page visits</h2>
+                    <a href="#" class="btn btn-sm btn-primary ms-auto">See all</a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-items-center table-flush">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="border-bottom" scope="col">Page name</th>
+                                <th class="border-bottom" scope="col">Page Views</th>
+                                <th class="border-bottom" scope="col">Page Value</th>
+                                <th class="border-bottom" scope="col">Bounce rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th class="text-gray-900" scope="row">/demo/admin/index.html</th>
+                                <td class="fw-bold text-gray-500">3,225</td>
+                                <td class="fw-bold text-gray-500">$20</td>
+                                <td class="fw-bold text-gray-500">42.55%</td>
+                            </tr>
+                            <tr>
+                                <th class="text-gray-900" scope="row">/demo/admin/forms.html</th>
+                                <td class="fw-bold text-gray-500">2,987</td>
+                                <td class="fw-bold text-gray-500">$0</td>
+                                <td class="fw-bold text-gray-500">43.24%</td>
+                            </tr>
+                            <tr>
+                                <th class="text-gray-900" scope="row">/demo/admin/util.html</th>
+                                <td class="fw-bold text-gray-500">2,844</td>
+                                <td class="fw-bold text-gray-500">$294</td>
+                                <td class="fw-bold text-gray-500">32.35%</td>
+                            </tr>
+                            <tr>
+                                <th class="text-gray-900" scope="row">/demo/admin/validation.html</th>
+                                <td class="fw-bold text-gray-500">2,050</td>
+                                <td class="fw-bold text-gray-500">$147</td>
+                                <td class="fw-bold text-gray-500">50.87%</td>
+                            </tr>
+                            <tr>
+                                <th class="text-gray-900" scope="row">/demo/admin/modals.html</th>
+                                <td class="fw-bold text-gray-500">1,483</td>
+                                <td class="fw-bold text-gray-500">$19</td>
+                                <td class="fw-bold text-gray-500">26.12%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-bottom d-flex align-items-center">
+                    <h2 class="fs-6 fw-bold mb-0">Team members</h2>
+                    <a href="#" class="btn btn-sm btn-primary ms-auto">See all</a>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush list my--3">
+                        <li class="list-group-item px-0">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="avatar-sm bg-gray-200 rounded-circle text-center">
+                                        <svg class="icon icon-xs text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="col ms--2">
+                                    <h4 class="h6 mb-0">
+                                        <a href="#">Chris Wood</a>
+                                    </h4>
+                                    <span class="badge badge-sm bg-success">Online</span>
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-sm btn-secondary">Invite</button>
+                                </div>
                             </div>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 pb-3">
-                            <div>
-                                <h3 class="h6 mb-0">Best Score</h3>
-                                <small class="text-muted">Highest achievement</small>
+                        <li class="list-group-item px-0">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="avatar-sm bg-gray-200 rounded-circle text-center">
+                                        <svg class="icon icon-xs text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="col ms--2">
+                                    <h4 class="h6 mb-0">
+                                        <a href="#">Jose Leos</a>
+                                    </h4>
+                                    <span class="badge badge-sm bg-warning">In a meeting</span>
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-sm btn-secondary">Message</button>
+                                </div>
                             </div>
-                            <div class="text-end">
-                                <span class="h6 mb-0">N/A</span>
+                        </li>
+                        <li class="list-group-item px-0">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="avatar-sm bg-gray-200 rounded-circle text-center">
+                                        <svg class="icon icon-xs text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                                    </div>
+                                </div>
+                                <div class="col ms--2">
+                                    <h4 class="h6 mb-0">
+                                        <a href="#">Bonnie Green</a>
+                                    </h4>
+                                    <span class="badge badge-sm bg-danger">Offline</span>
+                                </div>
+                                <div class="col-auto">
+                                    <button class="btn btn-sm btn-secondary">Message</button>
+                                </div>
                             </div>
                         </li>
                     </ul>

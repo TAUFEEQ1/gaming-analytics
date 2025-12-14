@@ -8,14 +8,20 @@
             <div class="col-12 col-md-6 col-lg-5 col-xl-4">
                 <div class="login-form-container">
                     <div class="text-center mb-4">
-                        <img src="https://licensing.lgrb.go.ug/static/assets/images/nlgrb_admin_logo.png" alt="LGRB Logo" class="mb-4" style="height: 60px;">
+                        <img src="{% static 'images/NLGRB-Logo-xs.png' %}" alt="NLGRB Logo" class="mb-4" style="height: 70px;">
                         <h2 class="fw-bold mb-2">Log in to your account</h2>
                         <p class="text-muted small">NCEMS Analytics Platform</p>
                     </div>
                     
                     {% if form.errors %}
                         <div class="alert alert-danger" role="alert">
-                            Please correct the errors below.
+                            {% if form.non_field_errors %}
+                                {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            {% else %}
+                                The username and/or password you specified are not correct.
+                            {% endif %}
                         </div>
                     {% endif %}
                     

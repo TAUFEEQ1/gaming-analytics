@@ -1,43 +1,46 @@
 {% load static %}
-<nav class="navbar navbar-top navbar-expand navbar-dashboard navbar-dark ps-0 pe-2 pb-0">
-    <div class="container-fluid px-0">
-        <div class="d-flex justify-content-between w-100" id="navbarSupportedContent">
-            <div class="d-flex align-items-center">
-                <button id="sidebar-toggle" class="navbar-toggler d-lg-none collapsed" type="button" 
-                        data-bs-toggle="collapse" data-bs-target="#sidebarMenu" 
-                        aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-            </div>
-            
-            <!-- Navbar links -->
-            <ul class="navbar-nav align-items-center">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle pt-1 px-0" href="#" role="button" 
-                       data-bs-toggle="dropdown" aria-expanded="false">
-                        <div class="media d-flex align-items-center">
-                            <div class="avatar rounded-circle me-2">
-                                <i class="fas fa-user-circle fa-2x text-white"></i>
-                            </div>
-                            <div class="media-body ms-2 text-white d-none d-lg-block">
-                                <span class="mb-0 font-small fw-bold">{{ user.username }}</span>
-                            </div>
-                        </div>
+<nav class="navbar shadow-sm navbar-light navbar-expand" style="background-color: #ffffff; padding: 0.75rem 1.5rem;">
+    <div class="navbar-brand d-flex align-items-center">
+        <img src="{% static 'images/NLGRB-Logo-xs.png' %}" height="40px" alt="NLGRB Logo">
+        <span class="text-dark fw-bold ms-2">NCEMS</span>
+        <span class="text-success fw-bold">Analytics</span>
+    </div>
+    
+    <ul class="navbar-nav ms-auto">
+        <li class="nav-item dropdown">
+            <button class="btn dropdown-toggle btn-light m-md-2" type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                General Account
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="accountDropdown">
+                <li><a class="dropdown-item" href="#">Account 1</a></li>
+                <li><a class="dropdown-item" href="#">Account 2</a></li>
+            </ul>
+        </li>
+        
+        <li class="nav-item d-flex align-items-center mx-3">
+            <span>Dates:</span>
+            <input type="text" class="form-control form-control-sm ms-2" value="-" style="width: 150px;" placeholder="Select dates">
+        </li>
+    </ul>
+    
+    <ul class="navbar-nav ms-auto">
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-user-circle me-2" style="font-size: 1.5rem;"></i>
+                <span>{{ user.username }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                <li>
+                    <a class="dropdown-item" href="{% url 'account_change_password' %}">
+                        <i class="fas fa-lock me-2"></i> Reset Password
                     </a>
-                    <div class="dropdown-menu dashboard-dropdown dropdown-menu-end mt-2 py-1">
-                        <a class="dropdown-item d-flex align-items-center" href="{% url 'profile' %}">
-                            <i class="fas fa-user-circle me-2"></i> My Profile
-                        </a>
-                        <a class="dropdown-item d-flex align-items-center" href="{% url 'account_change_password' %}">
-                            <i class="fas fa-cog me-2"></i> Settings
-                        </a>
-                        <div role="separator" class="dropdown-divider my-1"></div>
-                        <a class="dropdown-item d-flex align-items-center" href="{% url 'account_logout' %}">
-                            <i class="fas fa-sign-out-alt text-danger me-2"></i> Logout
-                        </a>
-                    </div>
+                </li>
+                <li>
+                    <a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                    </a>
                 </li>
             </ul>
-        </div>
-    </div>
+        </li>
+    </ul>
 </nav>
