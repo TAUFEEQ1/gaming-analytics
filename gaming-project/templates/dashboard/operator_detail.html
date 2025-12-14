@@ -1,0 +1,564 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block title %}{{ operator.name }} - Operator Details{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<style>
+    .metric-card {
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .chart-toggle-btn {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .chart-toggle-btn.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+    .table-cell-flagged {
+        background-color: #fff3cd !important;
+        font-weight: bold;
+    }
+    
+    /* DataTables styling to match theme */
+    .dataTables_wrapper {
+        font-family: inherit;
+    }
+    
+    .dataTables_filter input {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        margin-left: 0.5rem;
+    }
+    
+    .dataTables_filter input:focus {
+        border-color: #0d6efd;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+    }
+    
+    .dataTables_length select {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.375rem 2rem 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        margin: 0 0.5rem;
+    }
+    
+    .dataTables_info {
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding-top: 1rem;
+    }
+    
+    .dataTables_paginate {
+        padding-top: 1rem;
+    }
+    
+    .dataTables_paginate .paginate_button {
+        padding: 0.375rem 0.75rem;
+        margin: 0 0.125rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        background: white;
+        color: #374151 !important;
+        font-size: 0.875rem;
+    }
+    
+    .dataTables_paginate .paginate_button:hover {
+        background: #f9fafb !important;
+        border-color: #d1d5db !important;
+        color: #111827 !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:active,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:focus,
+    a.paginate_button.current {
+        background: #0d6efd !important;
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+    a.paginate_button.current:hover {
+        background: #0b5ed7 !important;
+        background-color: #0b5ed7 !important;
+        border-color: #0b5ed7 !important;
+        color: #fff !important;
+    }
+    
+    .dataTables_paginate .paginate_button.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    #transactionsTable tbody tr {
+        border-bottom: 1px solid #d1d5db;
+    }
+    
+    #transactionsTable tbody td {
+        padding: 12px 8px;
+    }
+    
+    /* Prevent horizontal overflow from Bootstrap rows */
+    .container-fluid > .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'operators_list' %}">Operators</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ operator.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header with operator info and actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <div class="avatar rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                <svg class="icon icon-sm" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div>
+                <h2 class="h4 mb-0">{{ operator.name }}</h2>
+                <p class="text-muted small mb-0">{{ operator.code }}</p>
+            </div>
+        </div>
+        
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" onclick="window.print()">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"></path>
+                </svg>
+                Print
+            </button>
+            <button class="btn btn-sm btn-primary">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <label class="me-2 mb-0 text-muted small fw-bold">Date Range:</label>
+                        <select class="form-select form-select-sm w-auto me-2" id="dateRangeSelect">
+                            <option value="today">Today</option>
+                            <option value="week" selected>This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                        <span class="text-muted small">{{ date_range_display }}</span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+                        <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Chart Area -->
+        <div class="col-12 col-lg-9 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 fw-bold">Performance Over Time</h6>
+                            <p class="text-muted small mb-0">{{ date_range_display }}</p>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn active" data-metric="ggr">GGR</button>
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn" data-metric="stakes">Stakes</button>
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn" data-metric="payouts">Payouts</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="performanceChart" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Sidebar -->
+        <div class="col-12 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total GGR</h6>
+                    <h3 class="fw-bold mb-0 text-success">UGX {{ total_ggr|humanize_number }}</h3>
+                    <div class="d-flex align-items-center mt-2">
+                        <span class="badge bg-success-soft text-success">
+                            <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"></path>
+                            </svg>
+                            +12.5%
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Stakes</h6>
+                    <h3 class="fw-bold mb-0 text-info">UGX {{ total_stakes|humanize_number }}</h3>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total Payouts</h6>
+                    <h3 class="fw-bold mb-0 text-warning">UGX {{ total_payouts|humanize_number }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History & Anomaly Alerts -->
+    <div class="row g-3">
+        <!-- Transaction Table -->
+        <div class="col-md-9">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0 fw-bold">Transaction History</h6>
+                            <p class="text-muted small mb-0">Recent transactions and flagged anomalies</p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <label class="me-2 mb-0 text-muted small">Filter:</label>
+                            <select class="form-select form-select-sm w-auto" id="anomalyFilter">
+                                <option value="all" selected>All Transactions</option>
+                                <option value="anomalous">Anomalous Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover align-middle mb-0" id="transactionsTable">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="border-0">Date</th>
+                                    <th class="border-0">Stakes (UGX)</th>
+                                    <th class="border-0">Payouts (UGX)</th>
+                                    <th class="border-0">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr data-anomalous="{{ transaction.has_anomaly|yesno:'true,false' }}">
+                                    <td class="text-muted small">{{ transaction.date|date:"d/m/Y H:i" }}</td>
+                                    <td class="{% if transaction.stake_flagged %}table-cell-flagged{% endif %}">
+                                        {{ transaction.stakes|floatformat:0 }}
+                                        {% if transaction.stake_flagged %}
+                                            <svg class="icon icon-xs text-warning ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        {% endif %}
+                                    </td>
+                                    <td class="{% if transaction.payout_flagged %}table-cell-flagged{% endif %}">
+                                        {{ transaction.payouts|floatformat:0 }}
+                                        {% if transaction.payout_flagged %}
+                                            <svg class="icon icon-xs text-danger ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewTransactionDetail('{{ transaction.id }}')">
+                                            <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anomaly Notifications -->
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <div class="d-flex align-items-center">
+                        <svg class="icon icon-sm text-warning me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <h6 class="mb-0 fw-bold">Recent Anomalies</h6>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for transaction in transactions %}
+                            {% if transaction.has_anomaly %}
+                            <div class="list-group-item border-0 py-3">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-shrink-0">
+                                        {% if transaction.stake_flagged %}
+                                        <span class="badge bg-warning text-dark">High Stake</span>
+                                        {% elif transaction.payout_flagged %}
+                                        <span class="badge bg-danger">High Payout</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <p class="mb-1 fw-bold small">{{ transaction.game_type }}</p>
+                                                <p class="mb-0 text-muted" style="font-size: 0.75rem;">
+                                                    {% if transaction.stake_flagged %}
+                                                    Stake: UGX {{ transaction.stakes|floatformat:0 }}
+                                                    {% elif transaction.payout_flagged %}
+                                                    Payout: UGX {{ transaction.payouts|floatformat:0 }}
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                            <span class="text-muted" style="font-size: 0.7rem;">{{ transaction.date|date:"d/m H:i" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top py-2 text-center">
+                    <a href="#" class="text-decoration-none small fw-bold text-primary">View All Anomalies →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+<script>
+    // Parse chart data
+    const chartData = {
+        ggr: {{ chart_data.ggr|safe }},
+        stakes: {{ chart_data.stakes|safe }},
+        payouts: {{ chart_data.payouts|safe }},
+        dates: {{ chart_data.dates|safe }}
+    };
+
+    let chart = null;
+    let transactionsTable = null;
+
+    function updateChart(metric) {
+        // Destroy existing chart
+        if (chart) {
+            chart.destroy();
+        }
+
+        // Define color based on metric
+        const colors = {
+            'ggr': '#198754',
+            'stakes': '#0dcaf0',
+            'payouts': '#ffc107'
+        };
+
+        // Chart options
+        const options = {
+            series: [{
+                name: metric.toUpperCase() + ' (UGX)',
+                data: chartData[metric]
+            }],
+            chart: {
+                type: 'area',
+                height: 350,
+                fontFamily: 'inherit',
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                },
+                zoom: {
+                    enabled: true
+                }
+            },
+            colors: [colors[metric]],
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 3
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.6,
+                    opacityTo: 0.1,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                categories: chartData.dates,
+                labels: {
+                    rotate: -45,
+                    rotateAlways: false,
+                    hideOverlappingLabels: true,
+                    trim: true,
+                    style: {
+                        fontSize: '11px'
+                    }
+                },
+                tickAmount: 20,
+                tickPlacement: 'on',
+                axisBorder: {
+                    show: true
+                },
+                axisTicks: {
+                    show: true
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: function(val) {
+                        if (val >= 1000000) {
+                            return 'UGX ' + (val / 1000000).toFixed(1) + 'M';
+                        } else if (val >= 1000) {
+                            return 'UGX ' + (val / 1000).toFixed(1) + 'K';
+                        }
+                        return 'UGX ' + val.toFixed(0);
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#e7e7e7',
+                strokeDashArray: 3
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(val) {
+                        return 'UGX ' + val.toLocaleString();
+                    }
+                }
+            },
+            markers: {
+                size: 0,
+                hover: {
+                    size: 5
+                }
+            }
+        };
+
+        // Render chart
+        chart = new ApexCharts(document.querySelector("#performanceChart"), options);
+        chart.render();
+    }
+
+    // Initialize chart after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize with GGR
+        updateChart('ggr');
+
+        // Chart Toggle buttons
+        document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateChart(this.dataset.metric);
+            });
+        });
+
+        // Initialize DataTables
+        transactionsTable = $('#transactionsTable').DataTable({
+            pageLength: 10,
+            order: [[0, 'desc']], // Sort by date descending
+            columnDefs: [],
+            responsive: true,
+            language: {
+                search: "Search transactions:",
+                lengthMenu: "Show _MENU_ transactions per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ transactions",
+                infoEmpty: "No transactions available",
+                infoFiltered: "(filtered from _MAX_ total transactions)",
+                paginate: {
+                    first: "First",
+                    last: "Last",
+                    next: "Next",
+                    previous: "Previous"
+                }
+            },
+            dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+        });
+
+        // Anomaly Filter - integrate with DataTables search
+        $('#anomalyFilter').on('change', function() {
+            const filter = this.value;
+            
+            if (filter === 'all') {
+                // Clear custom search
+                $.fn.dataTable.ext.search.pop();
+            } else {
+                // Add custom search function
+                $.fn.dataTable.ext.search.push(
+                    function(settings, data, dataIndex) {
+                        const row = transactionsTable.row(dataIndex).node();
+                        return $(row).data('anomalous') === 'true';
+                    }
+                );
+            }
+            
+            transactionsTable.draw();
+        });
+    });
+
+    function viewTransactionDetail(id) {
+        // Implement transaction detail view
+        alert('View transaction detail: ' + id);
+    }
+</script>
+{% endblock %}

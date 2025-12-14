@@ -319,10 +319,114 @@ def operators_list(request):
 @login_required
 def performance_detail(request, operator_code):
     """Operator performance detail view"""
-    # TODO: Fetch actual operator data from database
-    context = {
-        'operator_code': operator_code,
-        'operator_name': f'Operator {operator_code}',
-        # Add more operator details here
+    from datetime import datetime, timedelta
+    import random
+    
+    # Mock operator data
+    operator = {
+        'code': operator_code,
+        'name': f'Gaming Operator {operator_code.replace("OP-", "")}',
     }
-    return render(request, 'dashboard/performance_detail.html', context)
+    
+    # Mock metrics
+    total_ggr = random.uniform(50000000, 150000000)
+    total_stakes = random.uniform(200000000, 500000000)
+    total_payouts = total_stakes - total_ggr
+    
+    # Generate realistic transaction data over 6 months (180 days)
+    # Operators have 3-8 transactions per day on average
+    days_range = 180
+    start_date = datetime.now() - timedelta(days=days_range - 1)
+    
+    game_types = ['Sports Betting', 'Slots', 'Roulette', 'Card Games', 'Virtual Sports', 'Esports', 'Live Casino', 'Poker']
+    transactions = []
+    txn_counter = 1
+    
+    # Generate transactions ensuring at least 1 per day, with realistic volumes
+    for day in range(days_range):
+        current_date = start_date + timedelta(days=day)
+        # More transactions on weekends
+        is_weekend = current_date.weekday() >= 5
+        daily_transactions = random.randint(5, 12) if is_weekend else random.randint(3, 8)
+        
+        for _ in range(daily_transactions):
+            # More realistic stake amounts
+            base_stake = random.uniform(300000, 3000000)
+            # Add some high-value transactions occasionally
+            if random.random() < 0.05:  # 5% chance of high-value transaction
+                base_stake *= random.uniform(2, 5)
+            
+            # RTP varies by game type
+            game_type = random.choice(game_types)
+            if game_type == 'Sports Betting':
+                rtp = random.uniform(0.92, 0.97)
+            elif game_type in ['Slots', 'Virtual Sports']:
+                rtp = random.uniform(0.88, 0.95)
+            else:
+                rtp = random.uniform(0.94, 0.98)
+            
+            payout = base_stake * rtp
+            ggr = base_stake - payout
+            
+            # More realistic anomaly detection
+            # Check for unusually high stakes or suspicious RTP
+            stake_flagged = base_stake > 8000000 or random.random() < 0.08
+            payout_flagged = rtp > 0.985 or rtp < 0.85 or random.random() < 0.06
+            
+            transactions.append({
+                'id': f'TXN-{txn_counter:05d}',
+                'game_type': game_type,
+                'stakes': base_stake,
+                'payouts': payout,
+                'ggr': ggr,
+                'date': current_date + timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59)),
+                'stake_flagged': stake_flagged,
+                'payout_flagged': payout_flagged,
+                'has_anomaly': stake_flagged or payout_flagged
+            })
+            txn_counter += 1
+    
+    # Sort by date descending for table display
+    transactions.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Aggregate transactions by date for chart
+    from collections import defaultdict
+    daily_data = defaultdict(lambda: {'stakes': 0, 'payouts': 0, 'ggr': 0})
+    
+    for txn in transactions:
+        date_key = txn['date'].strftime('%d %b')
+        daily_data[date_key]['stakes'] += txn['stakes']
+        daily_data[date_key]['payouts'] += txn['payouts']
+        daily_data[date_key]['ggr'] += txn['ggr']
+    
+    # Rebuild chart data from aggregated transactions
+    dates = [(start_date + timedelta(days=i)).strftime('%d %b') for i in range(days_range)]
+    ggr_data = [round(daily_data[date]['ggr'], 0) for date in dates]
+    stakes_data = [round(daily_data[date]['stakes'], 0) for date in dates]
+    payouts_data = [round(daily_data[date]['payouts'], 0) for date in dates]
+    
+    # Calculate date range display
+    date_range_display = f"{start_date.strftime('%d %b %Y')} - {datetime.now().strftime('%d %b %Y')}"
+    
+    # Update totals from actual transaction data
+    total_ggr = sum(txn['ggr'] for txn in transactions)
+    total_stakes = sum(txn['stakes'] for txn in transactions)
+    total_payouts = sum(txn['payouts'] for txn in transactions)
+    
+    context = {
+        'operator': operator,
+        'total_ggr': total_ggr,
+        'total_stakes': total_stakes,
+        'total_payouts': total_payouts,
+        'date_range_display': date_range_display,
+        'total_transactions': len(transactions),
+        'chart_data': {
+            'dates': json.dumps(dates),
+            'ggr': json.dumps(ggr_data),
+            'stakes': json.dumps(stakes_data),
+            'payouts': json.dumps(payouts_data),
+        },
+        'transactions': transactions[:30],  # Show most recent 30 in table
+    }
+    
+    return render(request, 'dashboard/operator_detail.html', context)
