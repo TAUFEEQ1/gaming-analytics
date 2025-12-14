@@ -8,30 +8,154 @@
 <!-- DataTables CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <style>
+    /* Table styling */
     #operatorsTable tbody tr {
         border-bottom: 1px solid #d1d5db !important;
     }
     #operatorsTable thead th {
         border-bottom: 1px solid #d1d5db !important;
+        padding: 12px 8px !important;
+    }
+    #operatorsTable tbody td {
+        padding: 12px 8px !important;
     }
     .table-flush tbody tr:last-child {
         border-bottom: 0 !important;
+    }
+    
+    /* DataTables wrapper styling */
+    .dataTables_wrapper {
+        font-family: inherit;
+    }
+    
+    /* Search input */
+    .dataTables_filter input {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        margin-left: 0.5rem;
+    }
+    
+    .dataTables_filter input:focus {
+        border-color: #4f46e5;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .dataTables_filter label {
+        font-weight: 500;
+        color: #374151;
+        font-size: 0.875rem;
+    }
+    
+    /* Length selector */
+    .dataTables_length select {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.375rem 2rem 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        margin: 0 0.5rem;
+    }
+    
+    .dataTables_length label {
+        font-weight: 500;
+        color: #374151;
+        font-size: 0.875rem;
+    }
+    
+    /* Info text */
+    .dataTables_info {
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding-top: 1rem;
+    }
+    
+    /* Pagination */
+    .dataTables_paginate {
+        padding-top: 1rem;
+    }
+    
+    .dataTables_paginate .paginate_button {
+        padding: 0.375rem 0.75rem;
+        margin: 0 0.125rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        background: white;
+        color: #374151 !important;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .dataTables_paginate .paginate_button:hover {
+        background: #f9fafb !important;
+        border-color: #d1d5db !important;
+        color: #111827 !important;
+    }
+    
+    .dataTables_paginate .paginate_button.current {
+        background: #4f46e5 !important;
+        border-color: #4f46e5 !important;
+        color: white !important;
+    }
+    
+    .dataTables_paginate .paginate_button.current:hover {
+        background: #4338ca !important;
+        border-color: #4338ca !important;
+        color: white !important;
+    }
+    
+    .dataTables_paginate .paginate_button.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Sorting icons */
+    table.dataTable thead .sorting,
+    table.dataTable thead .sorting_asc,
+    table.dataTable thead .sorting_desc {
+        background-image: none !important;
+    }
+    
+    table.dataTable thead th {
+        position: relative;
+    }
+    
+    /* Processing indicator */
+    .dataTables_processing {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        color: #374151;
+        font-size: 0.875rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
-    <div class="d-flex justify-content-between align-items-center pb-2 mb-4">
-        <div>
-            <h2 class="h4 fw-normal text-uppercase mb-0">OPERATORS</h2>
+<div class="py-4">
+    <div class="d-flex justify-content-between w-100 flex-wrap">
+        <div class="mb-3 mb-lg-0">
+            <h1 class="h4">Operators</h1>
+            <p class="mb-0">Manage and monitor gaming operators for compliance and anomalies.</p>
         </div>
-        
         <div>
-            <button class="btn btn-sm btn-outline-secondary me-2"><i class="fas fa-filter me-1"></i> Options</button>
-            <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> Add Operator</button>
+            <button class="btn btn-sm btn-outline-secondary me-2">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"></path>
+                </svg>
+                Options
+            </button>
+            <button class="btn btn-sm btn-primary">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                </svg>
+                Add Operator
+            </button>
         </div>
     </div>
+</div>
 
     <div class="row">
         <!-- Main Content -->
@@ -61,22 +185,25 @@
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="all" role="tabpanel">
                             <div class="table-responsive">
-                                <table id="operatorsTable" class="table align-items-center table-flush">
+                                <table id="operatorsTable" class="table table-centered table-nowrap mb-0 rounded">
                                     <thead class="thead-light">
                                         <tr>
-                                            <th class="border-bottom" scope="col">Name</th>
-                                            <th class="border-bottom" scope="col">GGR (UGX M)</th>
-                                            <th class="border-bottom" scope="col">Anomalies (S/P)</th>
-                                            <th class="border-bottom" scope="col">Action</th>
+                                            <th class="border-0">Name</th>
+                                            <th class="border-0">GGR (UGX M)</th>
+                                            <th class="border-0">Anomalies (S/P)</th>
+                                            <th class="border-0">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for operator in operators %}
                                         <tr>
-                                            <th class="text-gray-900" scope="row">
+                                            <td class="fw-bold d-flex align-items-center">
+                                                <svg class="icon icon-xs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                                </svg>
                                                 {{ operator.name }}
-                                            </th>
-                                            <td class="fw-bolder text-gray-500">
+                                            </td>
+                                            <td class="fw-bold">
                                                 {{ operator.ggr }}
                                             </td>
                                             <td class="fw-bolder text-gray-500">
@@ -91,9 +218,13 @@
                                                     <span class="badge rounded-pill bg-success">P: 0</span>
                                                 {% endif %}
                                             </td>
-                                            <td class="fw-bolder text-gray-500">
-                                                <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye me-1"></i> View
+                                            <td>
+                                                <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center">
+                                                    <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                                                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    View
                                                 </a>
                                             </td>
                                         </tr>
@@ -164,11 +295,17 @@
 
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <a href="#" class="btn btn-outline-primary w-100 mb-2">
-                        <i class="fas fa-file-export me-2"></i> Export Report
+                    <a href="#" class="btn btn-outline-primary w-100 mb-2 d-inline-flex align-items-center justify-content-center">
+                        <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        Export Report
                     </a>
-                    <a href="#" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-print me-2"></i> Print
+                    <a href="#" class="btn btn-outline-secondary w-100 d-inline-flex align-items-center justify-content-center">
+                        <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Print
                     </a>
                 </div>
             </div>

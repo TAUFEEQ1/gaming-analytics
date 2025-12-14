@@ -4,3 +4,4 @@ whitenoise==6.9.0
 Pillow==11.1.0
 mysqlclient==2.2.6
 python-decouple==3.8
+django-volt-dashboard
