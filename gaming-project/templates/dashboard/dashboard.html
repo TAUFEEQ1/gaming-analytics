@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load dashboard_filters %}
 
 {% block title %}Dashboard - Regulatory Triage{% endblock %}
 
@@ -43,34 +44,34 @@
         <div class="col-12 col-xl-4 mb-4">
             <div class="row g-2">
                 <div class="col-6 mb-2">
-                    <div class="card border-0 shadow-sm h-100" style="background-color: #b3e5fc;">
-                        <div class="card-body text-center py-3">
-                            <h6 class="text-muted mb-2" style="font-size: 0.75rem;">GGR Available</h6>
-                            <h3 class="fw-bold mb-0" style="font-size: 1.25rem;">UGX {{ total_ggr|floatformat:2|default:'650.50' }}M</h3>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-6 mb-2">
                     <div class="card border-0 shadow-sm h-100" style="background-color: #81c784;">
                         <div class="card-body text-center py-3">
-                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Tax Collected</h6>
-                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">UGX {{ tax_collected|floatformat:2|default:'130.10' }}M</h3>
+                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Total GGR</h6>
+                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">UGX {{ total_ggr|humanize_number }}</h3>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-6 mb-2">
-                    <div class="card border-0 shadow-sm h-100" style="background-color: #f8bbd0;">
+                    <div class="card border-0 shadow-sm h-100" style="background-color: #64b5f6;">
                         <div class="card-body text-center py-3">
-                            <h6 class="text-muted mb-2" style="font-size: 0.75rem;">Penalties Due</h6>
-                            <h3 class="fw-bold mb-0" style="color: #c2185b; font-size: 1.25rem;">UGX 10.50M</h3>
+                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Total Stake</h6>
+                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">UGX {{ total_stake|humanize_number }}</h3>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-6 mb-2">
-                    <div class="card border-0 shadow-sm h-100" style="background-color: #ffffff; border: 1px solid #e0e0e0 !important;">
+                    <div class="card border-0 shadow-sm h-100" style="background-color: #ffb74d;">
+                        <div class="card-body text-center py-3">
+                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Total Payouts</h6>
+                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">UGX {{ total_payouts|humanize_number }}</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-6 mb-2">
+                    <div class="card border-0 shadow-sm h-100" style="background-color: #e0e0e0;">
                         <div class="card-body text-center py-3">
                             <h6 class="text-muted mb-2" style="font-size: 0.75rem;">Total Operators</h6>
                             <h3 class="fw-bold mb-0" style="font-size: 1.25rem;">{{ total_operators|default:'104' }}</h3>
@@ -79,19 +80,19 @@
                 </div>
                 
                 <div class="col-6 mb-2">
-                    <div class="card border-0 shadow-sm h-100" style="background-color: #b3e5fc;">
+                    <div class="card border-0 shadow-sm h-100" style="background-color: #9575cd;">
                         <div class="card-body text-center py-3">
-                            <h6 class="text-muted mb-2" style="font-size: 0.75rem;">Total Licenses</h6>
-                            <h3 class="fw-bold mb-0" style="color: #0277bd; font-size: 1.25rem;">2,700</h3>
+                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Total Bets</h6>
+                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">{{ total_bets|humanize_number }}</h3>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-6 mb-2">
-                    <div class="card border-0 shadow-sm h-100" style="background-color: #ffffff; border: 1px solid #e0e0e0 !important;">
+                    <div class="card border-0 shadow-sm h-100" style="background-color: #ef5350;">
                         <div class="card-body text-center py-3">
-                            <h6 class="text-muted mb-2" style="font-size: 0.75rem;">Active Inspectors</h6>
-                            <h3 class="fw-bold mb-0" style="font-size: 1.25rem;">3</h3>
+                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Anomalies</h6>
+                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">{{ total_anomalies|default:'3' }}</h3>
                         </div>
                     </div>
                 </div>

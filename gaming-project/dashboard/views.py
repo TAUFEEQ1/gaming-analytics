@@ -31,12 +31,12 @@ def dashboard(request):
     # TODO: Replace with actual database queries
     context = {
         'filter_period': filter_period,
-        'total_ggr': 650.50,  # in millions
-        'active_anomalies_count': 8,
-        'tax_collected': 130.10,  # in millions
-        'total_stake': 2.45,  # in billions
-        'total_payouts': 1.95,  # in billions
+        'total_ggr': 650_500_000,  # 650.5 million
+        'total_stake': 2_450_000_000,  # 2.45 billion
+        'total_payouts': 1_950_000_000,  # 1.95 billion
         'total_operators': 104,
+        'total_bets': 125_000,  # 125 thousand bets
+        'total_anomalies': 8,
         
         # Game type statistics
         'game_type_stats': [
