@@ -430,3 +430,97 @@ def performance_detail(request, operator_code):
     }
     
     return render(request, 'dashboard/operator_detail.html', context)
+
+
+@login_required
+def anomalies_list(request):
+    """Anomalies list view with filtering by operator"""
+    import random
+    from datetime import datetime, timedelta
+    
+    # Get operator filter from query params
+    operator_filter = request.GET.get('operator', 'all')
+    
+    # Mock operators list
+    operators = [
+        {'code': f'OP{str(i).zfill(3)}', 'name': f'Operator {i}'} 
+        for i in range(1, 51)
+    ]
+    
+    # Generate mock anomalous transactions
+    game_types = ['Sports Betting', 'Slots', 'Roulette', 'Card Games', 
+                  'Virtual Sports', 'Esports', 'Live Casino', 'Poker']
+    
+    anomalies = []
+    anomaly_id = 1
+    
+    # Generate 150 anomalous transactions across operators
+    for _ in range(150):
+        operator = random.choice(operators)
+        
+        # Skip if filtering by specific operator
+        if operator_filter != 'all' and operator['code'] != operator_filter:
+            continue
+            
+        game_type = random.choice(game_types)
+        
+        # Generate anomalous transaction
+        is_stake_anomaly = random.choice([True, False])
+        
+        if is_stake_anomaly:
+            # High stake anomaly
+            stakes = random.randint(8_000_000, 25_000_000)
+            rtp = random.uniform(0.88, 0.97)
+            payouts = round(stakes * rtp)
+        else:
+            # High payout / RTP anomaly
+            stakes = random.randint(1_000_000, 5_000_000)
+            rtp = random.uniform(0.985, 1.05)  # Unusually high RTP
+            payouts = round(stakes * rtp)
+        
+        ggr = stakes - payouts
+        
+        # Generate random date within last 30 days
+        days_ago = random.randint(0, 30)
+        anomaly_date = datetime.now() - timedelta(days=days_ago, hours=random.randint(0, 23))
+        
+        anomalies.append({
+            'id': anomaly_id,
+            'operator_code': operator['code'],
+            'operator_name': operator['name'],
+            'game_type': game_type,
+            'stakes': stakes,
+            'payouts': payouts,
+            'ggr': ggr,
+            'rtp': rtp * 100,
+            'date': anomaly_date,
+            'anomaly_type': 'High Stake' if is_stake_anomaly else 'High Payout',
+            'stake_flagged': is_stake_anomaly,
+            'payout_flagged': not is_stake_anomaly,
+        })
+        anomaly_id += 1
+    
+    # Sort by date descending
+    anomalies.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Calculate summary statistics
+    total_anomalies = len(anomalies)
+    stake_anomalies = len([a for a in anomalies if a['stake_flagged']])
+    payout_anomalies = len([a for a in anomalies if a['payout_flagged']])
+    total_flagged_stakes = sum(a['stakes'] for a in anomalies if a['stake_flagged'])
+    total_flagged_payouts = sum(a['payouts'] for a in anomalies if a['payout_flagged'])
+    avg_stake_anomaly = total_flagged_stakes / stake_anomalies if stake_anomalies > 0 else 0
+    avg_payout_anomaly = total_flagged_payouts / payout_anomalies if payout_anomalies > 0 else 0
+    
+    context = {
+        'anomalies': anomalies[:50],  # Show first 50
+        'operators': operators,
+        'selected_operator': operator_filter,
+        'total_anomalies': total_anomalies,
+        'stake_anomalies': stake_anomalies,
+        'payout_anomalies': payout_anomalies,
+        'avg_stake_anomaly': avg_stake_anomaly,
+        'avg_payout_anomaly': avg_payout_anomaly,
+    }
+    
+    return render(request, 'dashboard/anomalies_list.html', context)
