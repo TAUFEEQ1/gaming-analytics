@@ -13,12 +13,14 @@
         
         <div class="d-flex align-items-center">
             <h6 class="text-muted me-2 mb-0">Data Filter:</h6>
-            <select class="form-select form-select-sm" style="width: 150px;" id="timeFilter">
-                <option value="today">Today</option>
-                <option value="week" selected>This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom Range</option>
-            </select>
+            <form method="get" id="filterForm">
+                <select class="form-select form-select-sm" style="width: 150px;" id="timeFilter" name="filter" onchange="this.form.submit()">
+                    <option value="today" {% if request.GET.filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="week" {% if request.GET.filter == 'week' %}selected{% endif %}>This Week</option>
+                    <option value="month" {% if request.GET.filter == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="all" {% if request.GET.filter == 'all' or not request.GET.filter %}selected{% endif %}>All Time</option>
+                </select>
+            </form>
         </div>
         
         <div>
