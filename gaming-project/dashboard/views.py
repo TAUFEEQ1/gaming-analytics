@@ -97,37 +97,6 @@ def dashboard(request):
     game_types_page = game_paginator.get_page(game_page_number)
     context['game_type_stats'] = game_types_page
     
-    # Generate mock operators data
-    all_operators = [
-        {'code': 'OP-001', 'ggr': 45.20, 'active_anomalies': 3},
-        {'code': 'OP-002', 'ggr': 38.75, 'active_anomalies': 0},
-        {'code': 'OP-003', 'ggr': 52.30, 'active_anomalies': 2},
-        {'code': 'OP-004', 'ggr': 28.90, 'active_anomalies': 1},
-        {'code': 'OP-005', 'ggr': 35.60, 'active_anomalies': 0},
-        {'code': 'OP-006', 'ggr': 41.20, 'active_anomalies': 2},
-        {'code': 'OP-007', 'ggr': 22.45, 'active_anomalies': 0},
-        {'code': 'OP-008', 'ggr': 19.80, 'active_anomalies': 0},
-        {'code': 'OP-009', 'ggr': 31.15, 'active_anomalies': 1},
-        {'code': 'OP-010', 'ggr': 48.90, 'active_anomalies': 3},
-        {'code': 'OP-011', 'ggr': 27.30, 'active_anomalies': 0},
-        {'code': 'OP-012', 'ggr': 44.65, 'active_anomalies': 2},
-        {'code': 'OP-013', 'ggr': 18.50, 'active_anomalies': 0},
-        {'code': 'OP-014', 'ggr': 39.80, 'active_anomalies': 1},
-        {'code': 'OP-015', 'ggr': 33.20, 'active_anomalies': 2},
-        {'code': 'OP-016', 'ggr': 42.75, 'active_anomalies': 0},
-        {'code': 'OP-017', 'ggr': 25.40, 'active_anomalies': 1},
-        {'code': 'OP-018', 'ggr': 37.90, 'active_anomalies': 0},
-        {'code': 'OP-019', 'ggr': 29.60, 'active_anomalies': 3},
-        {'code': 'OP-020', 'ggr': 46.85, 'active_anomalies': 1},
-    ]
-    
-    # Pagination
-    page_number = request.GET.get('page', 1)
-    paginator = Paginator(all_operators, 10)  # Show 10 operators per page
-    operators_page = paginator.get_page(page_number)
-    
-    context['operators_for_triage'] = operators_page
-    
     return render(request, 'dashboard/dashboard.html', context)
 
 
@@ -183,48 +152,64 @@ def generate_sector_ggr_chart():
 
 
 def generate_top_operators_chart():
-    """Generate top operators bar chart HTML"""
+    """Generate top operators radial bar chart HTML"""
     return '''
-    <div class="chart-container" style="position: relative; height: 300px;">
-        <canvas id="topOperatorsChart"></canvas>
-    </div>
+    <div id="topOperatorsChart"></div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const ctx2 = document.getElementById('topOperatorsChart');
-            if (ctx2) {
-                new Chart(ctx2.getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: ['OP-003', 'OP-001', 'OP-006', 'OP-002', 'OP-005'],
-                        datasets: [{
-                            label: 'GGR (Millions)',
-                            data: [52.30, 45.20, 41.20, 38.75, 35.60],
-                            backgroundColor: 'rgba(52, 152, 219, 0.8)',
-                            borderColor: 'rgba(52, 152, 219, 1)',
-                            borderWidth: 1
-                        }]
+            if (typeof ApexCharts !== 'undefined') {
+                var options = {
+                    series: [88, 76, 69, 65, 60],
+                    chart: {
+                        height: 300,
+                        type: 'radialBar',
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + 'M';
+                    plotOptions: {
+                        radialBar: {
+                            dataLabels: {
+                                name: {
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                },
+                                value: {
+                                    fontSize: '12px',
+                                    formatter: function(val) {
+                                        return val.toFixed(0) + '%';
+                                    }
+                                },
+                                total: {
+                                    show: true,
+                                    label: 'Average',
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    formatter: function (w) {
+                                        return '71%';
                                     }
                                 }
+                            },
+                            hollow: {
+                                size: '50%',
                             }
                         }
+                    },
+                    labels: ['OP-003 (52.3M)', 'OP-001 (45.2M)', 'OP-006 (41.2M)', 'OP-002 (38.8M)', 'OP-005 (35.6M)'],
+                    colors: ['#3498db', '#2ecc71', '#9b59b6', '#f1c40f', '#e74c3c'],
+                    legend: {
+                        show: true,
+                        position: 'bottom',
+                        fontSize: '11px',
+                        labels: {
+                            colors: '#6c757d'
+                        },
+                        markers: {
+                            width: 10,
+                            height: 10
+                        }
                     }
-                });
+                };
+
+                var chart = new ApexCharts(document.querySelector("#topOperatorsChart"), options);
+                chart.render();
             }
         });
     </script>
@@ -264,7 +249,7 @@ def generate_bottom_operators_chart():
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                position: 'right',
+                                position: 'bottom',
                                 labels: {
                                     boxWidth: 12,
                                     padding: 10,
