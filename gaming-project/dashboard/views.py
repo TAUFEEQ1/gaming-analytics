@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import json
 
@@ -38,51 +39,94 @@ def dashboard(request):
         'total_bets': 125_000,  # 125 thousand bets
         'total_anomalies': 8,
         
-        # Game type statistics
-        'game_type_stats': [
-            {
-                'type': 'Sports Betting',
-                'avg_ggr': 45.20,
-                'avg_rtp': 94.50,
-                'rtp_std_dev': 2.1543
-            },
-            {
-                'type': 'Casino Games',
-                'avg_ggr': 38.75,
-                'avg_rtp': 96.20,
-                'rtp_std_dev': 1.8921
-            },
-            {
-                'type': 'Slot Machines',
-                'avg_ggr': 52.30,
-                'avg_rtp': 92.80,
-                'rtp_std_dev': 3.2145
-            },
-            {
-                'type': 'Live Dealer',
-                'avg_ggr': 28.90,
-                'avg_rtp': 97.10,
-                'rtp_std_dev': 1.3287
-            },
-        ],
-        
-        # Operators for triage table
-        'operators_for_triage': [
-            {'code': 'OP-001', 'ggr': 45.20, 'active_anomalies': 3},
-            {'code': 'OP-002', 'ggr': 38.75, 'active_anomalies': 0},
-            {'code': 'OP-003', 'ggr': 52.30, 'active_anomalies': 2},
-            {'code': 'OP-004', 'ggr': 28.90, 'active_anomalies': 1},
-            {'code': 'OP-005', 'ggr': 35.60, 'active_anomalies': 0},
-            {'code': 'OP-006', 'ggr': 41.20, 'active_anomalies': 2},
-            {'code': 'OP-007', 'ggr': 22.45, 'active_anomalies': 0},
-            {'code': 'OP-008', 'ggr': 19.80, 'active_anomalies': 0},
-        ],
-        
         # Chart data as HTML (using Plotly or similar)
         'sector_ggr_line_chart': generate_sector_ggr_chart(),
         'top_operators_bar_chart': generate_top_operators_chart(),
         'bottom_operators_pie_chart': generate_bottom_operators_chart(),
     }
+    
+    # Game type statistics with pagination
+    all_game_types = [
+        {
+            'type': 'Sports',
+            'avg_ggr': 45.20,
+            'avg_rtp': 94.50,
+            'rtp_std_dev': 2.1543
+        },
+        {
+            'type': 'Esports',
+            'avg_ggr': 32.15,
+            'avg_rtp': 93.80,
+            'rtp_std_dev': 2.4521
+        },
+        {
+            'type': 'Card Games',
+            'avg_ggr': 38.75,
+            'avg_rtp': 96.20,
+            'rtp_std_dev': 1.8921
+        },
+        {
+            'type': 'General Betting',
+            'avg_ggr': 28.90,
+            'avg_rtp': 95.10,
+            'rtp_std_dev': 2.0143
+        },
+        {
+            'type': 'Virtual Sports',
+            'avg_ggr': 25.60,
+            'avg_rtp': 92.30,
+            'rtp_std_dev': 3.1287
+        },
+        {
+            'type': 'Roulette',
+            'avg_ggr': 41.50,
+            'avg_rtp': 97.30,
+            'rtp_std_dev': 1.5432
+        },
+        {
+            'type': 'Slots',
+            'avg_ggr': 52.30,
+            'avg_rtp': 92.80,
+            'rtp_std_dev': 3.2145
+        },
+    ]
+    
+    # Paginate game types (4 per page)
+    game_page_number = request.GET.get('game_page', 1)
+    game_paginator = Paginator(all_game_types, 4)  # Show 4 game types per page
+    game_types_page = game_paginator.get_page(game_page_number)
+    context['game_type_stats'] = game_types_page
+    
+    # Generate mock operators data
+    all_operators = [
+        {'code': 'OP-001', 'ggr': 45.20, 'active_anomalies': 3},
+        {'code': 'OP-002', 'ggr': 38.75, 'active_anomalies': 0},
+        {'code': 'OP-003', 'ggr': 52.30, 'active_anomalies': 2},
+        {'code': 'OP-004', 'ggr': 28.90, 'active_anomalies': 1},
+        {'code': 'OP-005', 'ggr': 35.60, 'active_anomalies': 0},
+        {'code': 'OP-006', 'ggr': 41.20, 'active_anomalies': 2},
+        {'code': 'OP-007', 'ggr': 22.45, 'active_anomalies': 0},
+        {'code': 'OP-008', 'ggr': 19.80, 'active_anomalies': 0},
+        {'code': 'OP-009', 'ggr': 31.15, 'active_anomalies': 1},
+        {'code': 'OP-010', 'ggr': 48.90, 'active_anomalies': 3},
+        {'code': 'OP-011', 'ggr': 27.30, 'active_anomalies': 0},
+        {'code': 'OP-012', 'ggr': 44.65, 'active_anomalies': 2},
+        {'code': 'OP-013', 'ggr': 18.50, 'active_anomalies': 0},
+        {'code': 'OP-014', 'ggr': 39.80, 'active_anomalies': 1},
+        {'code': 'OP-015', 'ggr': 33.20, 'active_anomalies': 2},
+        {'code': 'OP-016', 'ggr': 42.75, 'active_anomalies': 0},
+        {'code': 'OP-017', 'ggr': 25.40, 'active_anomalies': 1},
+        {'code': 'OP-018', 'ggr': 37.90, 'active_anomalies': 0},
+        {'code': 'OP-019', 'ggr': 29.60, 'active_anomalies': 3},
+        {'code': 'OP-020', 'ggr': 46.85, 'active_anomalies': 1},
+    ]
+    
+    # Pagination
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(all_operators, 10)  # Show 10 operators per page
+    operators_page = paginator.get_page(page_number)
+    
+    context['operators_for_triage'] = operators_page
     
     return render(request, 'dashboard/dashboard.html', context)
 

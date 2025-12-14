@@ -133,28 +133,79 @@
                 <div class="card-header bg-white border-bottom">
                     <h5 class="card-title mb-0 fw-bold">Average GGR by Game Type</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Game Type</th>
-                                    <th class="text-end">Avg GGR</th>
-                                    <th class="text-end">Avg RTP</th>
+                                    <th class="border-0 py-3 ps-4 fw-semibold" style="font-size: 0.875rem;">Game Type</th>
+                                    <th class="border-0 py-3 text-end fw-semibold" style="font-size: 0.875rem;">Avg GGR</th>
+                                    <th class="border-0 py-3 pe-4 text-end fw-semibold" style="font-size: 0.875rem;">Avg RTP</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for game in game_type_stats %}
                                 <tr>
-                                    <td>{{ game.type }}</td>
-                                    <td class="text-end">UGX {{ game.avg_ggr }}M</td>
-                                    <td class="text-end">{{ game.avg_rtp }}%</td>
+                                    <td class="ps-4 py-3 border-bottom">
+                                        <span class="fw-medium">{{ game.type }}</span>
+                                    </td>
+                                    <td class="py-3 text-end border-bottom">
+                                        <span class="text-muted">UGX {{ game.avg_ggr }}M</span>
+                                    </td>
+                                    <td class="pe-4 py-3 text-end border-bottom">
+                                        <span class="badge bg-primary-soft text-primary">{{ game.avg_rtp }}%</span>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
+                
+                <!-- Game Types Pagination -->
+                {% if game_type_stats.has_other_pages %}
+                <div class="card-footer bg-white border-top py-2 px-3">
+                    <nav aria-label="Game types pagination">
+                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+                            {% if game_type_stats.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?game_page={{ game_type_stats.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;</span>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in game_type_stats.paginator.page_range %}
+                                {% if game_type_stats.number == num %}
+                                    <li class="page-item active" aria-current="page">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?game_page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if game_type_stats.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?game_page={{ game_type_stats.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -169,32 +220,36 @@
                         <span class="badge bg-danger">{{ operators_for_triage|length }} operators</span>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Operator Code</th>
-                                    <th class="text-end">GGR (UGX M)</th>
-                                    <th class="text-end">Active Anomalies</th>
-                                    <th class="text-center">Action</th>
+                                    <th class="border-0 py-3 ps-4 fw-semibold" style="font-size: 0.875rem;">Operator Code</th>
+                                    <th class="border-0 py-3 text-end fw-semibold" style="font-size: 0.875rem;">GGR (UGX M)</th>
+                                    <th class="border-0 py-3 text-end fw-semibold" style="font-size: 0.875rem;">Active Anomalies</th>
+                                    <th class="border-0 py-3 pe-4 text-center fw-semibold" style="font-size: 0.875rem;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for operator in operators_for_triage %}
                                 <tr>
-                                    <td><strong>{{ operator.code }}</strong></td>
-                                    <td class="text-end">{{ operator.ggr }}</td>
-                                    <td class="text-end">
+                                    <td class="ps-4 py-3 border-bottom">
+                                        <span class="fw-bold text-dark">{{ operator.code }}</span>
+                                    </td>
+                                    <td class="py-3 text-end border-bottom">
+                                        <span class="text-muted">{{ operator.ggr }}</span>
+                                    </td>
+                                    <td class="py-3 text-end border-bottom">
                                         {% if operator.active_anomalies > 0 %}
-                                            <span class="badge bg-danger">{{ operator.active_anomalies }}</span>
+                                            <span class="badge rounded-pill bg-danger">{{ operator.active_anomalies }}</span>
                                         {% else %}
-                                            <span class="badge bg-success">0</span>
+                                            <span class="badge rounded-pill bg-success">0</span>
                                         {% endif %}
                                     </td>
-                                    <td class="text-center">
-                                        <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-outline-primary">
-                                            View Details
+                                    <td class="pe-4 py-3 text-center border-bottom">
+                                        <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye me-1"></i> View Details
                                         </a>
                                     </td>
                                 </tr>
@@ -203,6 +258,72 @@
                         </table>
                     </div>
                 </div>
+                
+                <!-- Pagination -->
+                {% if operators_for_triage.has_other_pages %}
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted small">
+                            Showing {{ operators_for_triage.start_index }} to {{ operators_for_triage.end_index }} of {{ operators_for_triage.paginator.count }} operators
+                        </div>
+                        <nav aria-label="Operators pagination">
+                            <ul class="pagination pagination-sm mb-0">
+                                {% if operators_for_triage.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1" aria-label="First">
+                                            <span aria-hidden="true">&laquo;&laquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ operators_for_triage.previous_page_number }}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo;&laquo;</span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo;</span>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in operators_for_triage.paginator.page_range %}
+                                    {% if operators_for_triage.number == num %}
+                                        <li class="page-item active" aria-current="page">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > operators_for_triage.number|add:'-3' and num < operators_for_triage.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if operators_for_triage.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ operators_for_triage.next_page_number }}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ operators_for_triage.paginator.num_pages }}" aria-label="Last">
+                                            <span aria-hidden="true">&raquo;&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&raquo;</span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&raquo;&raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
