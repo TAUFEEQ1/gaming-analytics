@@ -38,7 +38,7 @@
     }
     
     .dataTables_filter input:focus {
-        border-color: #4f46e5;
+        border-color: #138796;
         outline: none;
         box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     }
@@ -94,14 +94,14 @@
     }
     
     .dataTables_paginate .paginate_button.current {
-        background: #4f46e5 !important;
-        border-color: #4f46e5 !important;
+        background: #0d6efd !important;
+        border-color: #0d6efd !important;
         color: white !important;
     }
     
     .dataTables_paginate .paginate_button.current:hover {
-        background: #4338ca !important;
-        border-color: #4338ca !important;
+        background: #0b5ed7 !important;
+        border-color: #0b5ed7 !important;
         color: white !important;
     }
     
@@ -159,32 +159,10 @@
 
     <div class="row">
         <!-- Main Content -->
-        <div class="col-12 col-xl-9 mb-4">
+        <div class="col-12 col-lg-9 mb-4">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom py-3">
-                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
-                                All operators
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="flagged-tab" data-bs-toggle="tab" data-bs-target="#flagged" type="button" role="tab">
-                                Flagged for review
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="compliant-tab" data-bs-toggle="tab" data-bs-target="#compliant" type="button" role="tab">
-                                Compliant
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                
                 <div class="card-body">
-                    <div class="tab-content">
-                        <div class="tab-pane fade show active" id="all" role="tabpanel">
-                            <div class="table-responsive">
+                    <div class="table-responsive">
                                 <table id="operatorsTable" class="table table-centered table-nowrap mb-0 rounded">
                                     <thead class="thead-light">
                                         <tr>
@@ -231,29 +209,13 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-pane fade" id="flagged" role="tabpanel">
-                            <div class="p-4 text-center text-muted">
-                                <i class="fas fa-filter fa-3x mb-3"></i>
-                                <p>Showing operators flagged for regulatory review</p>
-                            </div>
-                        </div>
-                        
-                        <div class="tab-pane fade" id="compliant" role="tabpanel">
-                            <div class="p-4 text-center text-muted">
-                                <i class="fas fa-check-circle fa-3x mb-3"></i>
-                                <p>Showing compliant operators</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Sidebar Stats -->
-        <div class="col-12 col-xl-3 mb-4">
+        <div class="col-12 col-lg-3 mb-4">
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
                     <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Operator Stats</h6>
