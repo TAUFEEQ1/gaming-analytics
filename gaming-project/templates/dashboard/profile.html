@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profile - NCEMS Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center py-4">
+        <div class="d-block mb-4 mb-md-0">
+            <nav aria-label="breadcrumb" class="d-none d-md-inline-block">
+                <ol class="breadcrumb breadcrumb-dark breadcrumb-transparent">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'home' %}">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'dashboard' %}">Dashboard</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Profile</li>
+                </ol>
+            </nav>
+            <h2 class="h4">User Profile</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Account Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Username:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ user.username }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Email:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ user.email }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Member Since:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ user.date_joined|date:"F d, Y" }}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <strong>Last Login:</strong>
+                        </div>
+                        <div class="col-md-8">
+                            {{ user.last_login|date:"F d, Y H:i" }}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'account_email' %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Email
+                    </a>
+                    <a href="{% url 'account_change_password' %}" class="btn btn-secondary">
+                        <i class="fas fa-key me-2"></i>Change Password
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">Profile Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-circle fa-5x text-primary mb-3"></i>
+                        <h5>{{ user.username }}</h5>
+                        <p class="text-muted">Gamer</p>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between border-0 px-0">
+                            <span>Games Played</span>
+                            <strong>0</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between border-0 px-0">
+                            <span>Total Hours</span>
+                            <strong>0</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between border-0 px-0">
+                            <span>Achievements</span>
+                            <strong>0</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
