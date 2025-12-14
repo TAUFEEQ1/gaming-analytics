@@ -98,10 +98,11 @@
                 </div>
                 
                 <div class="col-6 mb-2">
-                    <div class="card border-0 shadow-sm h-100" style="background-color: #ef5350;">
+                    <div class="card border-0 shadow-sm h-100" style="background-color: #ef5350; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#anomaliesModal">
                         <div class="card-body text-center py-3">
                             <h6 class="text-white mb-2" style="font-size: 0.75rem;">Anomalies</h6>
-                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">{{ total_anomalies|default:'3' }}</h3>
+                            <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">{{ total_anomalies|default:'0' }}</h3>
+                            <small class="text-white" style="font-size: 0.7rem;"><i class="fas fa-info-circle me-1"></i>Click for details</small>
                         </div>
                     </div>
                 </div>
@@ -213,6 +214,77 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Anomalies Details Modal -->
+<div class="modal fade" id="anomaliesModal" tabindex="-1" aria-labelledby="anomaliesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="anomaliesModalLabel">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>GGR Anomalies Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="min-height: 500px;">
+                {% if anomalies_details %}
+                <div class="row g-0">
+                    <!-- Left Side: Anomalies List -->
+                    <div class="col-md-5 border-end" style="max-height: 600px; overflow-y: auto;">
+                        <div class="p-3 bg-light border-bottom">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" id="anomalySearch" class="form-control border-start-0" placeholder="Search anomalies...">
+                            </div>
+                        </div>
+                        <div id="anomaliesList">
+                            {% for anomaly in anomalies_details %}
+                            <div class="anomaly-item p-3 border-bottom" style="cursor: pointer;" 
+                                 data-date="{{ anomaly.date }}"
+                                 data-actual="{{ anomaly.actual_ggr }}"
+                                 data-expected="{{ anomaly.expected_ggr }}"
+                                 data-variance="{{ anomaly.variance }}"
+                                 data-variance-percent="{{ anomaly.variance_percent }}"
+                                 data-score="{{ anomaly.anomaly_score }}"
+                                 data-operators="{{ anomaly.operators }}"
+                                 onclick="showAnomalyDetails(this)">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ anomaly.date }}</div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-chart-line me-1"></i>
+                                            {{ anomaly.actual_ggr|humanize_number }} UGX
+                                        </small>
+                                    </div>
+                                    <span class="badge {% if anomaly.variance_percent < -10 %}bg-danger{% elif anomaly.variance_percent < 0 %}bg-warning{% else %}bg-success{% endif %}">
+                                        {% if anomaly.variance_percent > 0 %}+{% endif %}{{ anomaly.variance_percent|floatformat:1 }}%
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Right Side: Anomaly Details -->
+                    <div class="col-md-7">
+                        <div id="anomalyDetailsPanel" class="p-4">
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-hand-pointer fa-3x mb-3 opacity-25"></i>
+                                <p>Select an anomaly from the list to view details</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>No anomalies detected for the selected period.
                 </div>
                 {% endif %}
             </div>
@@ -443,6 +515,135 @@ $(document).ready(function() {
     // Initialize chart on page load
     document.addEventListener('DOMContentLoaded', function() {
         initAreaChart();
+    });
+
+    // Show anomaly details when item is clicked
+    function showAnomalyDetails(element) {
+        // Remove active class from all items
+        document.querySelectorAll('.anomaly-item').forEach(item => {
+            item.classList.remove('active', 'bg-light');
+        });
+        
+        // Add active class to clicked item
+        element.classList.add('active', 'bg-light');
+        
+        // Get data from clicked element
+        const date = element.dataset.date;
+        const actual = parseFloat(element.dataset.actual);
+        const expected = parseFloat(element.dataset.expected);
+        const variance = parseFloat(element.dataset.variance);
+        const variancePercent = parseFloat(element.dataset.variancePercent);
+        const score = parseFloat(element.dataset.score);
+        const operators = element.dataset.operators;
+        const operatorCount = operators ? operators.split(',').length : 0;
+        
+        // Format numbers with K, M, B, T suffixes and handle negatives
+        function formatNumber(num) {
+            const sign = num < 0 ? '-' : '';
+            const absNum = Math.abs(num);
+            
+            if (absNum >= 1e12) return sign + (absNum / 1e12).toFixed(2) + 'T';
+            if (absNum >= 1e9) return sign + (absNum / 1e9).toFixed(2) + 'B';
+            if (absNum >= 1e6) return sign + (absNum / 1e6).toFixed(2) + 'M';
+            if (absNum >= 1e3) return sign + (absNum / 1e3).toFixed(2) + 'K';
+            return sign + absNum.toFixed(2);
+        }
+        
+        // Determine variance color and icon
+        const isPositive = variance > 0;
+        const varianceColor = isPositive ? 'success' : 'danger';
+        const varianceIcon = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
+        
+        // Determine severity badge
+        let severityBadge = '';
+        if (Math.abs(variancePercent) > 20) {
+            severityBadge = '<span class="badge bg-danger">High Severity</span>';
+        } else if (Math.abs(variancePercent) > 10) {
+            severityBadge = '<span class="badge bg-warning">Medium Severity</span>';
+        } else {
+            severityBadge = '<span class="badge bg-info">Low Severity</span>';
+        }
+        
+        // Build details HTML
+        const detailsHTML = `
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">GGR Anomaly</h5>
+                    ${severityBadge}
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Date</label>
+                <div class="h6 mb-0">${date}</div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Actual GGR</label>
+                <div class="h4 text-${varianceColor} mb-0">UGX ${formatNumber(actual)}</div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Expected GGR</label>
+                <div class="h6 mb-0">UGX ${formatNumber(expected)}</div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Variance</label>
+                <div class="d-flex align-items-center">
+                    <i class="fas ${varianceIcon} text-${varianceColor} me-2"></i>
+                    <span class="h5 text-${varianceColor} mb-0">
+                        ${isPositive ? '+' : ''}${formatNumber(variance)} UGX
+                    </span>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Variance Percentage</label>
+                <div class="h5 text-${varianceColor} mb-0">
+                    ${isPositive ? '+' : ''}${variancePercent.toFixed(2)}%
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Anomaly Score</label>
+                <div class="d-flex align-items-center">
+                    <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                        <div class="progress-bar ${score > 0.7 ? 'bg-danger' : score > 0.5 ? 'bg-warning' : 'bg-info'}" 
+                             style="width: ${score * 100}%">
+                            ${score.toFixed(3)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="text-muted small mb-1">Active Operators</label>
+                <div class="h6 mb-0">
+                    <i class="fas fa-users me-2 text-muted"></i>${operatorCount} Operator${operatorCount !== 1 ? 's' : ''}
+                </div>
+            </div>
+        `;
+        
+        // Update panel
+        document.getElementById('anomalyDetailsPanel').innerHTML = detailsHTML;
+    }
+    
+    // Search functionality for anomalies list
+    $('#anomalySearch').on('keyup', function() {
+        const searchTerm = $(this).val().toLowerCase();
+        $('.anomaly-item').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.includes(searchTerm));
+        });
+    });
+    
+    // Auto-select first anomaly when modal opens
+    $('#anomaliesModal').on('shown.bs.modal', function () {
+        const firstItem = document.querySelector('.anomaly-item');
+        if (firstItem) {
+            showAnomalyDetails(firstItem);
+        }
     });
 </script>
 {% endblock %}

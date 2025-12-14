@@ -6,18 +6,25 @@ register = template.Library()
 @register.filter
 def humanize_number(value):
     """
-    Convert numbers to human readable format with K, M, B suffixes
+    Convert numbers to human readable format with K, M, B, T suffixes
+    Handles negative values and trillions
     """
     try:
         num = float(value)
     except (ValueError, TypeError):
         return value
     
-    if abs(num) >= 1_000_000_000:
-        return f"{num / 1_000_000_000:.2f}B"
-    elif abs(num) >= 1_000_000:
-        return f"{num / 1_000_000:.2f}M"
-    elif abs(num) >= 1_000:
-        return f"{num / 1_000:.2f}K"
+    # Store sign for negative numbers
+    sign = '-' if num < 0 else ''
+    abs_num = abs(num)
+    
+    if abs_num >= 1_000_000_000_000:
+        return f"{sign}{abs_num / 1_000_000_000_000:.2f}T"
+    elif abs_num >= 1_000_000_000:
+        return f"{sign}{abs_num / 1_000_000_000:.2f}B"
+    elif abs_num >= 1_000_000:
+        return f"{sign}{abs_num / 1_000_000:.2f}M"
+    elif abs_num >= 1_000:
+        return f"{sign}{abs_num / 1_000:.2f}K"
     else:
-        return f"{num:.2f}"
+        return f"{sign}{abs_num:.2f}"

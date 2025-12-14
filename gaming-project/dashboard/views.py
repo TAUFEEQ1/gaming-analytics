@@ -56,6 +56,9 @@ def dashboard(request):
     # Get time series data for chart
     time_series = data_handler.get_time_series_data(start_date, end_date)
     
+    # Get anomalies details
+    anomalies_details = data_handler.get_anomalies_details(start_date, end_date)
+    
     context = {
         'filter_period': filter_period,
         'total_ggr': kpis['total_ggr'],
@@ -67,6 +70,9 @@ def dashboard(request):
         
         # Time series chart data (actual vs expected GGR)
         'chart_data': json.dumps(time_series),
+        
+        # Anomalies details for modal
+        'anomalies_details': anomalies_details,
         
         # Chart data as HTML (using Plotly or similar)
         'sector_ggr_line_chart': generate_sector_ggr_chart(),

@@ -122,3 +122,32 @@ class GGRDataHandler:
             if pd.notna(ops) and ops:
                 all_operators.update(ops.split(','))
         return sorted(all_operators)
+    
+    def get_anomalies_details(self, start_date=None, end_date=None):
+        """
+        Get detailed information about anomalies
+        
+        Returns:
+            list: List of anomaly dictionaries with date, actual, expected, score
+        """
+        df = self.get_date_range_data(start_date, end_date)
+        
+        # Filter for anomalies only
+        anomalies_df = df[df['is_anomaly'] == 1].copy()
+        
+        anomalies = []
+        for _, row in anomalies_df.iterrows():
+            anomalies.append({
+                'date': row['date'].strftime('%Y-%m-%d'),
+                'actual_ggr': float(row['GGR']),
+                'expected_ggr': float(row['expected_GGR']),
+                'anomaly_score': float(row['anomaly_score']),
+                'variance': float(row['GGR'] - row['expected_GGR']),
+                'variance_percent': float((row['GGR'] - row['expected_GGR']) / row['expected_GGR'] * 100) if row['expected_GGR'] != 0 else 0,
+                'operators': row['operators_list'] if pd.notna(row['operators_list']) else 'N/A'
+            })
+        
+        # Sort by date descending
+        anomalies.sort(key=lambda x: x['date'], reverse=True)
+        
+        return anomalies
