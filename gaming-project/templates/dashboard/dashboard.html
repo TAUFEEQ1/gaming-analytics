@@ -25,20 +25,17 @@
             <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-download me-1"></i> Export</button>
         </div>
     </div>
-
     <!-- Main Chart and Stats Cards Row -->
     <div class="row">
         <div class="col-12 col-xl-8 mb-4">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-bottom">
-                    <h5 class="card-title mb-0 fw-bold">GGR COLLECTED (MILLIONS)</h5>
+                    <div class="d-flex justify-content-between align-items-center py-3">
+                        <h5 class="card-title mb-0 fw-bold">GGR TREND: EXPECTED VS ACTUAL</h5>
+                    </div>
                 </div>
                 <div class="card-body">
-                    {% if sector_ggr_line_chart %}
-                        {{ sector_ggr_line_chart | safe }}
-                    {% else %}
-                        <p class="text-center text-muted">No GGR trend data available for the selected period.</p>
-                    {% endif %}
+                    <div id="ggrAreaChart"></div>
                 </div>
             </div>
         </div>
@@ -49,7 +46,7 @@
                     <div class="card border-0 shadow-sm" style="background-color: #b3e5fc;">
                         <div class="card-body text-center py-3">
                             <h6 class="text-muted mb-2" style="font-size: 0.875rem;">GGR Available</h6>
-                            <h2 class="fw-bold mb-0">UGX {{ total_ggr | floatformat:2 | default:'650.50' }}M</h2>
+                            <h2 class="fw-bold mb-0">UGX {{ total_ggr|floatformat:2|default:'650.50' }}M</h2>
                         </div>
                     </div>
                 </div>
@@ -58,7 +55,7 @@
                     <div class="card border-0 shadow-sm" style="background-color: #81c784;">
                         <div class="card-body text-center py-3">
                             <h6 class="text-white mb-2" style="font-size: 0.875rem;">Tax Collected</h6>
-                            <h2 class="fw-bold mb-0 text-white">UGX {{ tax_collected | floatformat:2 | default:'650.50' }}M</h2>
+                            <h2 class="fw-bold mb-0 text-white">UGX {{ tax_collected|floatformat:2|default:'130.10' }}M</h2>
                         </div>
                     </div>
                 </div>
@@ -76,7 +73,7 @@
                     <div class="card border-0 shadow-sm" style="background-color: #ffffff; border: 1px solid #e0e0e0;">
                         <div class="card-body text-center py-3">
                             <h6 class="text-muted mb-2" style="font-size: 0.875rem;">Total Operators</h6>
-                            <h2 class="fw-bold mb-0">{{ total_operators | default:'104' }}</h2>
+                            <h2 class="fw-bold mb-0">{{ total_operators|default:'104' }}</h2>
                         </div>
                     </div>
                 </div>
@@ -101,118 +98,160 @@
             </div>
         </div>
     </div>
-    
-    <div class="row">
-        <div class="col-12 col-xl-8 mb-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header border-bottom bg-white">
-                    <h5 class="card-title mb-0 fw-bold">Game Type Averages (RTP & Std Dev)</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table align-items-center table-flush mb-0">
-                        <thead class="thead-light">
-                            <tr>
-                                <th scope="col" class="text-start">Game Type</th> 
-                                <th scope="col" class="text-end">Avg GGR</th> 
-                                <th scope="col" class="text-center">Avg RTP</th> 
-                                <th scope="col" class="text-center">RTP Std Dev</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for game in game_type_stats %}
-                            <tr>
-                                <th class="text-gray-900 text-start" scope="row">{{ game.type }}</th>
-                                <td class="text-end">{{ game.avg_ggr | floatformat:2 }}M</td>
-                                <td class="text-center">{{ game.avg_rtp | floatformat:2 }}%</td>
-                                <td class="text-center">{{ game.rtp_std_dev | floatformat:4 }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No game type data available.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-12 col-xl-6 mb-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="card-title mb-0 fw-bold">Top 5 Operators by GGR ({{ filter_period | default:'This Week' }})</h5>
-                </div>
-                <div class="card-body">
-                    {% if top_operators_bar_chart %}
-                        {{ top_operators_bar_chart | safe }}
-                    {% else %}
-                        <p class="text-center text-muted">No data to rank top operators.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-12 col-xl-6 mb-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="card-title mb-0 fw-bold">Bottom 5 Operators (Viability Risk)</h5>
-                </div>
-                <div class="card-body d-flex justify-content-center align-items-center" style="min-height: 250px;">
-                    {% if bottom_operators_pie_chart %}
-                        {{ bottom_operators_pie_chart | safe }}
-                    {% else %}
-                        <p class="text-center text-muted">Not enough operator data for viability analysis.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header border-bottom d-flex align-items-center bg-white">
-                    <h2 class="fs-6 fw-bold mb-0">Operator Management (Triage Action List)</h2>
-                    <span class="ms-3 badge bg-danger">{{ active_anomalies_count | default:'0' }} Active Alerts</span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table align-items-center table-flush">
-                        <thead class="thead-light">
-                            <tr>
-                                <th class="border-bottom text-start" scope="col">Operator Code</th>
-                                <th class="border-bottom text-end" scope="col">GGR ({{ filter_period | default:'This Week' }})</th>
-                                <th class="border-bottom text-center" scope="col">Active Anomalies</th>
-                                <th class="border-bottom text-center" scope="col">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for operator in operators_for_triage %}
-                            <tr>
-                                <th class="text-gray-900 text-start" scope="row">{{ operator.code }}</th>
-                                <td class="fw-bold text-end">{{ operator.ggr | floatformat:2 }}M</td>
-                                <td class="text-center">
-                                    {% if operator.active_anomalies > 0 %}
-                                        <span class="badge bg-danger">{{ operator.active_anomalies }}</span>
-                                    {% else %}
-                                        <span class="badge bg-success">0</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center">
-                                    <a href="{% url 'performance_detail' operator_code=operator.code %}" class="btn btn-sm btn-primary">Investigate</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No operators found for triage.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Generate full year of daily data (365 days)
+    function generateDailyData() {
+        const expected = [];
+        const actual = [];
+        const today = new Date(2025, 11, 14); // Dec 14, 2025
+        const daysBack = 365;
+        
+        for (let i = daysBack - 1; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            const timestamp = date.getTime();
+            
+            // Generate realistic fluctuating data with trends
+            // Seasonal variation and growth trend
+            const dayOfYear = (daysBack - 1) - i;
+            const seasonalFactor = Math.sin((dayOfYear / 365) * Math.PI * 2) * 50;
+            const growthTrend = dayOfYear * 0.5;
+            const randomVariation = Math.random() * 40 - 20;
+            
+            const baseExpected = 400 + growthTrend + seasonalFactor + randomVariation;
+            const actualVariation = Math.random() * 60 - 30;
+            const baseActual = baseExpected + actualVariation;
+            
+            expected.push([timestamp, Math.round(baseExpected)]);
+            actual.push([timestamp, Math.round(Math.max(0, baseActual))]);
+        }
+        
+        return { expected, actual };
+    }
+    
+    let currentChart = null;
+    
+    function initAreaChart() {
+        const data = generateDailyData();
+        
+        const options = {
+            series: [
+                {
+                    name: 'Expected',
+                    data: data.expected
+                },
+                {
+                    name: 'Actual',
+                    data: data.actual
+                }
+            ],
+            chart: {
+                type: 'area',
+                height: 350,
+                toolbar: {
+                    show: true,
+                    tools: {
+                        download: true,
+                        selection: true,
+                        zoom: true,
+                        zoomin: true,
+                        zoomout: true,
+                        pan: true,
+                        reset: true
+                    }
+                },
+                animations: {
+                    enabled: true,
+                    easing: 'easeinout',
+                    speed: 800
+                }
+            },
+            dataLabels: {
+                enabled: false
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 2
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.3,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                type: 'datetime',
+                labels: {
+                    datetimeUTC: false,
+                    format: 'MMM dd',
+                    style: {
+                        fontSize: '12px'
+                    }
+                }
+            },
+            yaxis: {
+                labels: {
+                    formatter: function(value) {
+                        return 'UGX ' + value + 'M';
+                    },
+                    style: {
+                        fontSize: '12px'
+                    }
+                }
+            },
+            colors: ['#2c3e50', '#1abc9c'],
+            legend: {
+                position: 'top',
+                horizontalAlign: 'left',
+                fontSize: '14px',
+                offsetY: 0,
+                offsetX: 0,
+                markers: {
+                    width: 12,
+                    height: 12,
+                    radius: 2
+                },
+                itemMargin: {
+                    horizontal: 10,
+                    vertical: 0
+                }
+            },
+            tooltip: {
+                y: {
+                    formatter: function(value) {
+                        return 'UGX ' + value + 'M';
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#f1f1f1',
+                padding: {
+                    top: 0,
+                    right: 10,
+                    bottom: 0,
+                    left: 10
+                }
+            }
+        };
+        
+        if (currentChart) {
+            currentChart.destroy();
+        }
+        
+        currentChart = new ApexCharts(document.querySelector("#ggrAreaChart"), options);
+        currentChart.render();
+    }
+    
+    // Initialize chart on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initAreaChart();
+    });
+</script>
 {% endblock %}
