@@ -299,6 +299,8 @@ def operators_list(request):
     total_operators = len(operators)
     total_ggr = sum(op['ggr'] for op in operators)
     operators_with_anomalies = len([op for op in operators if op['stake_anomalies'] > 0 or op['payout_anomalies'] > 0])
+    operators_with_stake_anomalies = len([op for op in operators if op['stake_anomalies'] > 0])
+    operators_with_payout_anomalies = len([op for op in operators if op['payout_anomalies'] > 0])
     avg_ggr = total_ggr / total_operators if total_operators > 0 else 0
     
     context = {
@@ -306,6 +308,8 @@ def operators_list(request):
         'total_operators': total_operators,
         'total_ggr': total_ggr,
         'operators_with_anomalies': operators_with_anomalies,
+        'operators_with_stake_anomalies': operators_with_stake_anomalies,
+        'operators_with_payout_anomalies': operators_with_payout_anomalies,
         'avg_ggr': avg_ggr,
     }
     
