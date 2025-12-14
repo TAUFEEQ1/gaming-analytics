@@ -34,7 +34,21 @@ def dashboard(request):
     filter_period = filter_period_map.get(filter_type, 'All Time')
     
     # Get date range based on filter
-    start_date, end_date = data_handler.get_filter_dates(filter_type)
+    if filter_type == 'custom':
+        # Get custom dates from query params
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        
+        if start_date_str and end_date_str:
+            from datetime import datetime
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            filter_period = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
+        else:
+            # Fallback to default if custom dates not provided
+            start_date, end_date = data_handler.get_filter_dates('all')
+    else:
+        start_date, end_date = data_handler.get_filter_dates(filter_type)
     
     # Get KPIs from real data
     kpis = data_handler.get_kpis(start_date, end_date)
