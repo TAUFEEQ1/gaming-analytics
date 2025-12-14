@@ -48,4 +48,8 @@ Thumbs.db
 staticfiles/
 
 # Environment variables
+
+# Data files
+dashboard/data/*.parquet
+dashboard/data/*.csv
 .env

@@ -214,31 +214,21 @@
 
 {% block extra_js %}
 <script>
-    // Generate full year of daily data (365 days)
-    function generateDailyData() {
+    // Parse real chart data from backend
+    const chartDataRaw = {{ chart_data|safe }};
+    
+    function prepareChartData() {
         const expected = [];
         const actual = [];
-        const today = new Date(2025, 11, 14); // Dec 14, 2025
-        const daysBack = 365;
         
-        for (let i = daysBack - 1; i >= 0; i--) {
-            const date = new Date(today);
-            date.setDate(date.getDate() - i);
-            const timestamp = date.getTime();
+        // Convert dates to timestamps and values to millions
+        for (let i = 0; i < chartDataRaw.dates.length; i++) {
+            const timestamp = new Date(chartDataRaw.dates[i]).getTime();
+            const actualValue = Math.round(chartDataRaw.actual_ggr[i] / 1_000_000); // Convert to millions
+            const expectedValue = Math.round(chartDataRaw.expected_ggr[i] / 1_000_000);
             
-            // Generate realistic fluctuating data with trends
-            // Seasonal variation and growth trend
-            const dayOfYear = (daysBack - 1) - i;
-            const seasonalFactor = Math.sin((dayOfYear / 365) * Math.PI * 2) * 50;
-            const growthTrend = dayOfYear * 0.5;
-            const randomVariation = Math.random() * 40 - 20;
-            
-            const baseExpected = 400 + growthTrend + seasonalFactor + randomVariation;
-            const actualVariation = Math.random() * 60 - 30;
-            const baseActual = baseExpected + actualVariation;
-            
-            expected.push([timestamp, Math.round(baseExpected)]);
-            actual.push([timestamp, Math.round(Math.max(0, baseActual))]);
+            expected.push([timestamp, expectedValue]);
+            actual.push([timestamp, actualValue]);
         }
         
         return { expected, actual };
@@ -247,7 +237,7 @@
     let currentChart = null;
     
     function initAreaChart() {
-        const data = generateDailyData();
+        const data = prepareChartData();
         
         const options = {
             series: [

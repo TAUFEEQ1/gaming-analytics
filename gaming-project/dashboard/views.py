@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 import json
+from .data_utils import GGRDataHandler
 
 
 def home(request):
@@ -14,30 +15,44 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    """Main dashboard view"""
+    """Main dashboard view with real parquet data"""
     
-    # Get filter period from query params (default: week)
-    filter_type = request.GET.get('filter', 'week')
+    # Initialize data handler
+    data_handler = GGRDataHandler()
+    
+    # Get filter period from query params (default: all)
+    filter_type = request.GET.get('filter', 'all')
     
     # Determine filter period display text
     filter_period_map = {
         'today': 'Today',
         'week': 'This Week',
         'month': 'This Month',
+        'all': 'All Time',
         'custom': 'Custom'
     }
-    filter_period = filter_period_map.get(filter_type, 'This Week')
+    filter_period = filter_period_map.get(filter_type, 'All Time')
     
-    # Mock data for dashboard statistics
-    # TODO: Replace with actual database queries
+    # Get date range based on filter
+    start_date, end_date = data_handler.get_filter_dates(filter_type)
+    
+    # Get KPIs from real data
+    kpis = data_handler.get_kpis(start_date, end_date)
+    
+    # Get time series data for chart
+    time_series = data_handler.get_time_series_data(start_date, end_date)
+    
     context = {
         'filter_period': filter_period,
-        'total_ggr': 650_500_000,  # 650.5 million
-        'total_stake': 2_450_000_000,  # 2.45 billion
-        'total_payouts': 1_950_000_000,  # 1.95 billion
-        'total_operators': 104,
-        'total_bets': 125_000,  # 125 thousand bets
-        'total_anomalies': 8,
+        'total_ggr': kpis['total_ggr'],
+        'total_stake': kpis['total_stake'],
+        'total_payouts': kpis['total_payout'],
+        'total_operators': kpis['total_operators'],
+        'total_bets': kpis['total_bets'],
+        'total_anomalies': kpis['total_anomalies'],
+        
+        # Time series chart data (actual vs expected GGR)
+        'chart_data': json.dumps(time_series),
         
         # Chart data as HTML (using Plotly or similar)
         'sector_ggr_line_chart': generate_sector_ggr_chart(),
