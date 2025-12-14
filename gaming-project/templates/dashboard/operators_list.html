@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block title %}Operators - Regulatory Triage{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<style>
+    #operatorsTable tbody tr {
+        border-bottom: 1px solid #d1d5db !important;
+    }
+    #operatorsTable thead th {
+        border-bottom: 1px solid #d1d5db !important;
+    }
+    .table-flush tbody tr:last-child {
+        border-bottom: 0 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center pb-2 mb-4">
+        <div>
+            <h2 class="h4 fw-normal text-uppercase mb-0">OPERATORS</h2>
+        </div>
+        
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2"><i class="fas fa-filter me-1"></i> Options</button>
+            <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i> Add Operator</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-12 col-xl-9 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                                All operators
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="flagged-tab" data-bs-toggle="tab" data-bs-target="#flagged" type="button" role="tab">
+                                Flagged for review
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="compliant-tab" data-bs-toggle="tab" data-bs-target="#compliant" type="button" role="tab">
+                                Compliant
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="all" role="tabpanel">
+                            <div class="table-responsive">
+                                <table id="operatorsTable" class="table align-items-center table-flush">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="border-bottom" scope="col">Name</th>
+                                            <th class="border-bottom" scope="col">GGR (UGX M)</th>
+                                            <th class="border-bottom" scope="col">Anomalies (S/P)</th>
+                                            <th class="border-bottom" scope="col">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for operator in operators %}
+                                        <tr>
+                                            <th class="text-gray-900" scope="row">
+                                                {{ operator.name }}
+                                            </th>
+                                            <td class="fw-bolder text-gray-500">
+                                                {{ operator.ggr }}
+                                            </td>
+                                            <td class="fw-bolder text-gray-500">
+                                                {% if operator.stake_anomalies > 0 %}
+                                                    <span class="badge rounded-pill bg-warning text-dark me-1">S: {{ operator.stake_anomalies }}</span>
+                                                {% else %}
+                                                    <span class="badge rounded-pill bg-success me-1">S: 0</span>
+                                                {% endif %}
+                                                {% if operator.payout_anomalies > 0 %}
+                                                    <span class="badge rounded-pill bg-danger">P: {{ operator.payout_anomalies }}</span>
+                                                {% else %}
+                                                    <span class="badge rounded-pill bg-success">P: 0</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="fw-bolder text-gray-500">
+                                                <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye me-1"></i> View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="flagged" role="tabpanel">
+                            <div class="p-4 text-center text-muted">
+                                <i class="fas fa-filter fa-3x mb-3"></i>
+                                <p>Showing operators flagged for regulatory review</p>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="compliant" role="tabpanel">
+                            <div class="p-4 text-center text-muted">
+                                <i class="fas fa-check-circle fa-3x mb-3"></i>
+                                <p>Showing compliant operators</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Stats -->
+        <div class="col-12 col-xl-3 mb-4">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Operator Stats</h6>
+                    <h3 class="fw-bold mb-3">{{ total_operators }}</h3>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small text-muted">With Anomalies</span>
+                            <span class="badge bg-danger">{{ operators_with_anomalies }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {% widthratio operators_with_anomalies total_operators 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small text-muted">Compliant</span>
+                            <span class="badge bg-success">{{ total_operators|add:"-"|add:operators_with_anomalies }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {% widthratio total_operators|add:"-"|add:operators_with_anomalies total_operators 100 %}%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total GGR</h6>
+                    <h3 class="fw-bold mb-0 text-success">UGX {{ total_ggr|humanize_number }}</h3>
+                    <p class="text-muted small mb-0 mt-2">Average: UGX {{ avg_ggr|floatformat:2 }}M</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <a href="#" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-file-export me-2"></i> Export Report
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-print me-2"></i> Print
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#operatorsTable').DataTable({
+            responsive: true,
+            pageLength: 10,
+            order: [[1, 'desc']], // Sort by GGR descending
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search operators...",
+                lengthMenu: "_MENU_ records per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ operators",
+                infoEmpty: "No operators available",
+                infoFiltered: "(filtered from _MAX_ total operators)"
+            },
+            columnDefs: [
+                { orderable: false, targets: 3 } // Disable sorting on action column
+            ]
+        });
+    });
+</script>
+{% endblock %}

@@ -281,6 +281,38 @@ def profile(request):
 
 
 @login_required
+def operators_list(request):
+    """Operators list view"""
+    # Mock operators data
+    # TODO: Replace with actual database queries
+    operators = []
+    for i in range(1, 51):  # Generate 50 mock operators
+        operators.append({
+            'code': f'OP-{i:03d}',
+            'name': f'Gaming Operator {i}',
+            'ggr': round(15.0 + (i * 2.5), 2),
+            'stake_anomalies': (i % 5),  # 0-4 anomalies
+            'payout_anomalies': (i % 3),  # 0-2 anomalies
+        })
+    
+    # Summary statistics
+    total_operators = len(operators)
+    total_ggr = sum(op['ggr'] for op in operators)
+    operators_with_anomalies = len([op for op in operators if op['stake_anomalies'] > 0 or op['payout_anomalies'] > 0])
+    avg_ggr = total_ggr / total_operators if total_operators > 0 else 0
+    
+    context = {
+        'operators': operators,
+        'total_operators': total_operators,
+        'total_ggr': total_ggr,
+        'operators_with_anomalies': operators_with_anomalies,
+        'avg_ggr': avg_ggr,
+    }
+    
+    return render(request, 'dashboard/operators_list.html', context)
+
+
+@login_required
 def performance_detail(request, operator_code):
     """Operator performance detail view"""
     # TODO: Fetch actual operator data from database
