@@ -22,6 +22,10 @@
                     <option value="today" {% if request.GET.filter == 'today' %}selected{% endif %}>Today</option>
                     <option value="week" {% if request.GET.filter == 'week' %}selected{% endif %}>This Week</option>
                     <option value="month" {% if request.GET.filter == 'month' %}selected{% endif %}>This Month</option>
+                    <option value="q1" {% if request.GET.filter == 'q1' %}selected{% endif %}>Q1 (Jan-Mar)</option>
+                    <option value="q2" {% if request.GET.filter == 'q2' %}selected{% endif %}>Q2 (Apr-Jun)</option>
+                    <option value="q3" {% if request.GET.filter == 'q3' %}selected{% endif %}>Q3 (Jul-Sep)</option>
+                    <option value="q4" {% if request.GET.filter == 'q4' %}selected{% endif %}>Q4 (Oct-Dec)</option>
                     <option value="all" {% if request.GET.filter == 'all' or not request.GET.filter %}selected{% endif %}>All Time</option>
                     <option value="custom" {% if request.GET.filter == 'custom' %}selected{% endif %}>Custom Range</option>
                 </select>
@@ -100,9 +104,8 @@
                 <div class="col-6 mb-2">
                     <div class="card border-0 shadow-sm h-100" style="background-color: #ef5350; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#anomaliesModal">
                         <div class="card-body text-center py-3">
-                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Anomalies</h6>
+                            <h6 class="text-white mb-2" style="font-size: 0.75rem;">Anomalies <i class="fas fa-info-circle me-1"></i></h6>
                             <h3 class="fw-bold mb-0 text-white" style="font-size: 1.25rem;">{{ total_anomalies|default:'0' }}</h3>
-                            <small class="text-white" style="font-size: 0.7rem;"><i class="fas fa-info-circle me-1"></i>Click for details</small>
                         </div>
                     </div>
                 </div>

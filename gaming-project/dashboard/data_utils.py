@@ -93,12 +93,13 @@ class GGRDataHandler:
         Get start and end dates based on filter type
         
         Args:
-            filter_type: 'today', 'week', 'month', 'all', 'custom'
+            filter_type: 'today', 'week', 'month', 'q1', 'q2', 'q3', 'q4', 'all', 'custom'
         
         Returns:
             tuple: (start_date, end_date)
         """
         today = datetime.now().date()
+        current_year = today.year
         
         if filter_type == 'today':
             start_date = today
@@ -109,6 +110,18 @@ class GGRDataHandler:
         elif filter_type == 'month':
             start_date = today - timedelta(days=30)
             end_date = today
+        elif filter_type == 'q1':
+            start_date = datetime(current_year, 1, 1).date()
+            end_date = datetime(current_year, 3, 31).date()
+        elif filter_type == 'q2':
+            start_date = datetime(current_year, 4, 1).date()
+            end_date = datetime(current_year, 6, 30).date()
+        elif filter_type == 'q3':
+            start_date = datetime(current_year, 7, 1).date()
+            end_date = datetime(current_year, 9, 30).date()
+        elif filter_type == 'q4':
+            start_date = datetime(current_year, 10, 1).date()
+            end_date = datetime(current_year, 12, 31).date()
         else:  # All data (default)
             start_date = self.df['date'].min().date()
             end_date = self.df['date'].max().date()
