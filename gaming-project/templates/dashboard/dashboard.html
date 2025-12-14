@@ -99,6 +99,113 @@
             </div>
         </div>
     </div>
+    <!-- End Main Chart and Stats Cards Row -->
+    
+    <!-- Second Row: Three Chart Cards -->
+    <div class="row">
+        <!-- Top 5 Operators by GGR -->
+        <div class="col-12 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0 fw-bold">Top 5 Operators by GGR</h5>
+                </div>
+                <div class="card-body">
+                    {{ top_operators_bar_chart|safe }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom 5 Operators by GGR -->
+        <div class="col-12 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0 fw-bold">Bottom 5 Operators by GGR</h5>
+                </div>
+                <div class="card-body">
+                    {{ bottom_operators_pie_chart|safe }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Average GGR per Game Type -->
+        <div class="col-12 col-xl-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="card-title mb-0 fw-bold">Average GGR by Game Type</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Game Type</th>
+                                    <th class="text-end">Avg GGR</th>
+                                    <th class="text-end">Avg RTP</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for game in game_type_stats %}
+                                <tr>
+                                    <td>{{ game.type }}</td>
+                                    <td class="text-end">UGX {{ game.avg_ggr }}M</td>
+                                    <td class="text-end">{{ game.avg_rtp }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Third Row: Operators Triage Table -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <h5 class="card-title mb-0 fw-bold">Operators Requiring Triage</h5>
+                        <span class="badge bg-danger">{{ operators_for_triage|length }} operators</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Operator Code</th>
+                                    <th class="text-end">GGR (UGX M)</th>
+                                    <th class="text-end">Active Anomalies</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for operator in operators_for_triage %}
+                                <tr>
+                                    <td><strong>{{ operator.code }}</strong></td>
+                                    <td class="text-end">{{ operator.ggr }}</td>
+                                    <td class="text-end">
+                                        {% if operator.active_anomalies > 0 %}
+                                            <span class="badge bg-danger">{{ operator.active_anomalies }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-outline-primary">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

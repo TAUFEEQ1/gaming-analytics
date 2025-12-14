@@ -145,38 +145,42 @@ def generate_top_operators_chart():
         <canvas id="topOperatorsChart"></canvas>
     </div>
     <script>
-        const ctx2 = document.getElementById('topOperatorsChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: ['OP-003', 'OP-001', 'OP-006', 'OP-002', 'OP-005'],
-                datasets: [{
-                    label: 'GGR (Millions)',
-                    data: [52.30, 45.20, 41.20, 38.75, 35.60],
-                    backgroundColor: 'rgba(52, 152, 219, 0.8)',
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value + 'M';
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx2 = document.getElementById('topOperatorsChart');
+            if (ctx2) {
+                new Chart(ctx2.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['OP-003', 'OP-001', 'OP-006', 'OP-002', 'OP-005'],
+                        datasets: [{
+                            label: 'GGR (Millions)',
+                            data: [52.30, 45.20, 41.20, 38.75, 35.60],
+                            backgroundColor: 'rgba(52, 152, 219, 0.8)',
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + 'M';
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                });
             }
         });
     </script>
@@ -186,39 +190,55 @@ def generate_top_operators_chart():
 def generate_bottom_operators_chart():
     """Generate bottom operators pie chart HTML"""
     return '''
-    <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+    <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
         <canvas id="bottomOperatorsChart"></canvas>
     </div>
     <script>
-        const ctx3 = document.getElementById('bottomOperatorsChart').getContext('2d');
-        new Chart(ctx3, {
-            type: 'pie',
-            data: {
-                labels: ['OP-008', 'OP-007', 'OP-004', 'OP-005', 'OP-002'],
-                datasets: [{
-                    data: [19.80, 22.45, 28.90, 35.60, 38.75],
-                    backgroundColor: [
-                        'rgba(231, 76, 60, 0.8)',
-                        'rgba(230, 126, 34, 0.8)',
-                        'rgba(241, 196, 15, 0.8)',
-                        'rgba(52, 152, 219, 0.8)',
-                        'rgba(46, 204, 113, 0.8)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            boxWidth: 12,
-                            padding: 10
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx3 = document.getElementById('bottomOperatorsChart');
+            if (ctx3) {
+                new Chart(ctx3.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['OP-008', 'OP-007', 'OP-004', 'OP-005', 'OP-002'],
+                        datasets: [{
+                            label: 'GGR (Millions)',
+                            data: [19.80, 22.45, 28.90, 35.60, 38.75],
+                            backgroundColor: [
+                                'rgba(231, 76, 60, 0.8)',
+                                'rgba(230, 126, 34, 0.8)',
+                                'rgba(241, 196, 15, 0.8)',
+                                'rgba(52, 152, 219, 0.8)',
+                                'rgba(46, 204, 113, 0.8)'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 10,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': ' + context.parsed + 'M';
+                                    }
+                                }
+                            }
                         }
                     }
-                }
+                });
             }
         });
     </script>
