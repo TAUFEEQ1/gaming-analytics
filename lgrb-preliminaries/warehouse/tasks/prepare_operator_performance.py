@@ -58,7 +58,10 @@ class PrepareOperatorPerformance(luigi.Task):
             'GGR': 'sum',
             'stake_real_money': 'sum',
             'payout_base_win': 'sum',
-            'no_of_bets': 'sum'
+            'no_of_bets': 'sum',
+            'bets_won_cnt': 'sum',
+            'bets_refunded_cnt': 'sum',
+            'bets_adjusted_cnt': 'sum'
         })
         
         # Rename for clarity

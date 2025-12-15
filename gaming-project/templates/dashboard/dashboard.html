@@ -144,7 +144,7 @@
                                         <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ operator.operator_tier }}</span>
                                     </td>
                                     <td class="text-end py-2">
-                                        <span class="text-success fw-bold" style="font-size: 0.875rem;">{{ operator.GGR|humanize_number }}</span>
+                                        <span class="text-success fw-bold" style="font-size: 0.875rem;">{{ operator.total_ggr|humanize_number }}</span>
                                     </td>
                                     <td class="pe-3 text-end py-2">
                                         <span class="badge bg-success" style="font-size: 0.7rem;">+{{ operator.z_score|floatformat:2 }}</span>
@@ -186,7 +186,7 @@
                                         <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ operator.operator_tier }}</span>
                                     </td>
                                     <td class="text-end py-2">
-                                        <span class="{% if operator.GGR < 0 %}text-danger{% else %}text-warning{% endif %} fw-bold" style="font-size: 0.875rem;">{{ operator.GGR|humanize_number }}</span>
+                                        <span class="{% if operator.total_ggr < 0 %}text-danger{% else %}text-warning{% endif %} fw-bold" style="font-size: 0.875rem;">{{ operator.total_ggr|humanize_number }}</span>
                                     </td>
                                     <td class="pe-3 text-end py-2">
                                         <span class="badge bg-danger" style="font-size: 0.7rem;">{{ operator.z_score|floatformat:2 }}</span>

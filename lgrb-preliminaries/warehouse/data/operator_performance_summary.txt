@@ -5,7 +5,7 @@ OPERATOR PERFORMANCE DATA SUMMARY
 Data Structure:
   Granularity: Operator × Day × Game Category
   Total records: 8,203
-  File size: 0.17 MB
+  File size: 0.20 MB
 
 Dimensions:
   Unique operators: 33
