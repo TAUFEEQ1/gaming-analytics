@@ -1,5 +1,12 @@
 venv/
 
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
 # PII mapping files - DO NOT COMMIT
 warehouse/data/mappings/
 
