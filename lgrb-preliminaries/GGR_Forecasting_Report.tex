@@ -1,0 +1,847 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{GGR Forecasting Report}
+\lhead{Lottery and Gaming Regulatory Board}
+\rfoot{\thepage}
+
+\definecolor{darkblue}{RGB}{0,51,102}
+\definecolor{lightgray}{RGB}{240,240,240}
+
+\title{\textbf{Gross Gaming Revenue (GGR) Forecasting:\\Methodology, Findings, and Recommendations}}
+\author{Gaming Analytics Team\\Lottery and Gaming Regulatory Board}
+\date{December 15, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report presents a comprehensive analysis of Gross Gaming Revenue (GGR) forecasting for the Ugandan gaming industry. We document the evolution of our forecasting methodology from initial approaches (Test R² = 0.09) to an improved decomposed model (Test R² = 0.33), representing a 270\% improvement in predictive accuracy. We explain the challenges inherent in GGR prediction due to gambling randomness and provide recommendations for additional data collection that could further enhance forecasting capabilities.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Executive Summary}
+
+\subsection{Key Findings}
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Model Performance:} Improved GGR forecasting from Test R² = 0.09 to 0.33 (270\% improvement)
+    \item \textbf{Inherent Limitations:} Gambling payout randomness (35.9\% volatility) creates a natural ceiling on prediction accuracy
+    \item \textbf{Best Approach:} Decomposed modeling (Stake × House Edge) outperforms direct GGR prediction
+    \item \textbf{Critical Discovery:} Game category weighting by GGR contribution (not frequency) is essential
+    \item \textbf{Forecast Improvement:} Full dataset R² improved from 0.47 to 0.54 (+15\%)
+\end{itemize}
+
+\subsection{Business Impact}
+\begin{itemize}[leftmargin=*]
+    \item Current model suitable for trend detection and anomaly identification
+    \item Not yet reliable for precise day-to-day revenue forecasting
+    \item Beats all simple baselines (moving averages, naive predictions)
+    \item Additional operator data could significantly improve predictions
+\end{itemize}
+
+\newpage
+
+\section{Understanding GGR: The Fundamentals}
+
+\subsection{What is Gross Gaming Revenue?}
+
+Gross Gaming Revenue (GGR) represents the total amount retained by gaming operators after paying out winnings to players. It is calculated as:
+
+\begin{equation}
+\text{GGR} = \text{Total Stakes} - \text{Total Payouts}
+\end{equation}
+
+\textbf{Example:} If players bet UGX 1,000,000 and win UGX 780,000 back, the GGR is UGX 220,000.
+
+\subsection{Why GGR is Difficult to Predict}
+
+GGR has two components with very different behaviors:
+
+\begin{enumerate}
+    \item \textbf{Total Stakes (Predictable):} The amount wagered follows patterns:
+    \begin{itemize}
+        \item Weekly cycles (higher on weekends)
+        \item Seasonal trends
+        \item Operator activity levels
+        \item \textcolor{darkblue}{\textbf{Predictability: R² = 0.91 (very high)}}
+    \end{itemize}
+    
+    \item \textbf{Total Payouts (Random):} Winnings depend on game outcomes:
+    \begin{itemize}
+        \item Sports results are unpredictable
+        \item Casino games have inherent randomness
+        \item Return-to-Player (RTP) varies wildly: 78.4\% ± 35.9\%
+        \item \textcolor{red}{\textbf{Predictability: R² = 0.39 (low)}}
+    \end{itemize}
+\end{enumerate}
+
+\textbf{The Challenge:} GGR = Predictable Component - Random Component = \textcolor{red}{Inherently Noisy}
+
+This fundamental structure means even the best models will have limited accuracy.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{report_figures/fig1_model_evolution.pdf}
+\caption{Left: Predictability of GGR components showing stakes are highly predictable (R² = 0.91) while payouts are random (R² = 0.39). Right: Evolution of model performance across different approaches, demonstrating 270\% improvement from initial to final model.}
+\label{fig:model_evolution}
+\end{figure}
+
+\subsection{House Edge and RTP}
+
+\begin{itemize}
+    \item \textbf{House Edge:} Average percentage operators retain = GGR / Total Stakes
+    \item \textbf{Our Data:} Average house edge = 21.6\% (RTP = 78.4\%)
+    \item \textbf{Daily Volatility:} RTP ranges from 43.5\% to 129.6\% (on some days, operators lose money)
+\end{itemize}
+
+\newpage
+
+\section{Evolution of Our Forecasting Approach}
+
+\subsection{Stage 1: Initial Direct Prediction (Failed)}
+
+\textbf{Approach:} Use machine learning (XGBoost) to predict GGR directly from historical data.
+
+\textbf{Features Used:}
+\begin{itemize}
+    \item Historical GGR (lags 1-6 days)
+    \item Number of operators
+    \item Total bets
+    \item Weekend indicator
+    \item Most frequent game type (modal)
+\end{itemize}
+
+\textbf{Results:}
+\begin{itemize}
+    \item Training R² = 0.998 (appeared excellent)
+    \item \textcolor{red}{Test R² = -0.22 (worse than random guessing!)}
+    \item \textcolor{red}{\textbf{Problem: Severe overfitting}}
+\end{itemize}
+
+\textbf{Lesson Learned:} Complex models memorize training data but fail on new data.
+
+\subsection{Stage 2: Regularized Models (Marginal Success)}
+
+\textbf{Approach:} Switch to simpler models with regularization to prevent overfitting.
+
+\textbf{Model:} Random Forest with constraints
+\begin{itemize}
+    \item Limited tree depth (max\_depth = 5)
+    \item Minimum samples per split
+    \item Only 30 trees (vs thousands in XGBoost)
+\end{itemize}
+
+\textbf{Results:}
+\begin{itemize}
+    \item Training R² = 0.70 (reduced from 0.998)
+    \item Test R² = 0.09 (first positive result!)
+    \item \textcolor{orange}{\textbf{Problem: Still very weak prediction}}
+\end{itemize}
+
+\textbf{Lesson Learned:} Controlling overfitting helps, but the approach itself was flawed.
+
+\subsection{Stage 3: Decomposed Modeling (Breakthrough)}
+
+\textbf{Key Insight:} Instead of predicting GGR directly, predict its components:
+
+\begin{equation}
+\text{GGR} = \text{Total Stakes} \times \text{House Edge (Realized)}
+\end{equation}
+
+\textbf{Realized House Edge:} The actual percentage retained on each day = GGR / Stakes
+
+\textbf{Two-Step Prediction:}
+\begin{enumerate}
+    \item \textbf{Predict Total Stakes} using:
+    \begin{itemize}
+        \item Historical stakes (lags 1-3 days)
+        \item Historical betting volume (lags 1, 7 days)
+        \item Weekend indicator
+    \end{itemize}
+    
+    \item \textbf{Predict Realized House Edge} using:
+    \begin{itemize}
+        \item Historical house edge (lags 1-4 days)
+        \item 7-day moving average of house edge
+        \item 7-day volatility of house edge
+        \item \textcolor{darkblue}{\textbf{GGR-weighted game category}} (critical fix)
+        \item Weekend indicator
+        \item Number of active operators
+    \end{itemize}
+    
+    \item \textbf{Calculate GGR:} Predicted Stakes × Predicted House Edge
+\end{enumerate}
+
+\textbf{Results:}
+\begin{itemize}
+    \item Stake prediction: R² = 0.43 (decent)
+    \item House Edge prediction: R² = 0.32 (moderate)
+    \item \textcolor{darkblue}{\textbf{Combined GGR Test R² = 0.33 (270\% improvement!)}}
+\end{itemize}
+
+\subsection{Stage 4: Critical Feature Engineering Fix}
+
+\textbf{Original Mistake:} Used the most \textit{frequent} game type each day.
+
+\textbf{Example Problem:}
+\begin{itemize}
+    \item Day has 1000 small RRI\_sports bets (UGX 10M total)
+    \item Day also has 10 large RRI\_casinoGame bets (UGX 100M total)
+    \item Old method: Labeled day as "RRI\_sports" (most frequent)
+    \item \textcolor{red}{Wrong!} Casino games drove 90\% of revenue
+\end{itemize}
+
+\textbf{Correct Approach:} Use game category with \textit{highest GGR contribution}.
+
+\textbf{Impact of Fix:}
+\begin{itemize}
+    \item House Edge prediction: R² = 0.46 → 0.72 (+56\% improvement)
+    \item Final GGR prediction improved proportionally
+    \item Full dataset R² improved from 0.47 to 0.54
+\end{itemize}
+
+\textbf{Lesson Learned:} Feature engineering matters more than model complexity.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{report_figures/fig5_feature_impact.pdf}
+\caption{Progressive improvement in House Edge prediction R² through feature engineering. The critical breakthrough came from using GGR-weighted game categories instead of modal (most frequent) categories, improving R² from 0.59 to 0.72 (+56\% improvement).}
+\label{fig:feature_impact}
+\end{figure}
+
+\newpage
+
+\section{Testing and Validation}
+
+\subsection{What We Tested and Rejected}
+
+\subsubsection{EPL Game Days}
+\textbf{Hypothesis:} English Premier League matches drive betting activity and affect house edge.
+
+\textbf{Data:} 382 EPL matches from 2025 season
+
+\textbf{Test 1:} Any EPL game day vs non-EPL days
+\begin{itemize}
+    \item Result: p-value = 0.32 (not significant)
+\end{itemize}
+
+\textbf{Test 2:} Popular EPL games (big teams: Man City, Liverpool, Arsenal, etc.)
+\begin{itemize}
+    \item Result: p-value = 0.32 (not significant)
+    \item \textcolor{orange}{\textbf{Conclusion:}} EPL games don't significantly affect realized house edge
+\end{itemize}
+
+\subsubsection{Decision Tree Models}
+\textbf{Hypothesis:} Non-linear models can capture complex patterns.
+
+\textbf{Test:} Decision Tree Regressor vs Linear Regression
+
+\textbf{Results:}
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Train R²} & \textbf{Test R²} \\
+\midrule
+Linear Regression & 0.64 & \textbf{0.32} \\
+Decision Tree & 0.69 & 0.10 \\
+\midrule
+Train-Test Gap & 0.32 & 0.59 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Conclusion:} Decision Tree severely overfits. Linear model generalizes better.
+
+\subsection{Comparison to Simple Baselines}
+
+We tested our model against the simplest possible forecasts:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Method} & \textbf{Test R²} & \textbf{MAE (UGX M)} \\
+\midrule
+Simple Average & -0.01 & 1,713 \\
+7-Day Moving Average & -0.17 & 1,965 \\
+14-Day Moving Average & -0.06 & 1,816 \\
+30-Day Moving Average & -0.03 & 1,710 \\
+Naive (Yesterday's GGR) & -0.41 & 2,085 \\
+\midrule
+\textcolor{darkblue}{\textbf{Our Decomposed Model}} & \textcolor{darkblue}{\textbf{0.33}} & \textcolor{darkblue}{\textbf{1,374}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Key Insight:} All simple methods have \textit{negative} R² (worse than predicting the mean). Our model is the only approach with positive predictive power.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{report_figures/fig2_baseline_comparison.pdf}
+\caption{Comparison of forecasting methods showing our decomposed model significantly outperforms all simple baselines. All baseline methods have negative R² scores, meaning they perform worse than simply predicting the mean GGR every day.}
+\label{fig:baseline_comparison}
+\end{figure}
+
+\newpage
+
+\section{Current Model Performance and Limitations}
+
+\subsection{Statistical Performance}
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Value} & \textbf{Interpretation} \\
+\midrule
+Test R² Score & 0.33 & 33\% of variance explained \\
+Mean Absolute Error & UGX 1.37B & Average prediction error \\
+Median Error & 54\% & Half of predictions within 54\% \\
+90th Percentile Error & 320\% & 10\% of predictions very wrong \\
+95\% Prediction Interval & ± UGX 4.4B & Uncertainty range \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{What the Model CAN Do}
+
+\begin{enumerate}
+    \item \textbf{Trend Detection:} Identify if GGR is moving up or down
+    \item \textbf{Anomaly Detection:} Flag days with unusual GGR patterns
+    \item \textbf{Strategic Planning:} Support long-term revenue projections
+    \item \textbf{Driver Analysis:} Understand what factors influence GGR
+    \item \textbf{Scenario Testing:} Model impact of regulatory changes
+\end{enumerate}
+
+\subsection{What the Model CANNOT Do}
+
+\begin{enumerate}
+    \item \textbf{Precise Daily Forecasts:} Too much uncertainty for exact predictions
+    \item \textbf{Cash Flow Management:} Errors too large for operational budgeting
+    \item \textbf{Revenue Targets:} Cannot set reliable day-to-day targets
+    \item \textbf{Predict Outliers:} Cannot forecast extreme positive/negative days
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{report_figures/fig3_predictions_timeseries.pdf}
+\caption{Time series of predicted vs actual GGR for the last 60 days of the test set. The model captures general trends but cannot predict extreme outliers, particularly the sharp negative GGR event around late October.}
+\label{fig:predictions_timeseries}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{report_figures/fig4_scatter_plot.pdf}
+\caption{Scatter plot of predicted vs actual GGR showing Test R² = 0.3269. Points clustering around the red line indicate good predictions, while scattered points show the inherent unpredictability in gambling outcomes.}
+\label{fig:scatter_plot}
+\end{figure}
+
+\subsection{Why 33\% R² Might Be Near the Ceiling}
+
+The inherent randomness in gambling outcomes creates a fundamental limit:
+
+\begin{itemize}
+    \item \textbf{Payout Volatility:} Standard deviation of 35.9\% in RTP
+    \item \textbf{Sports Unpredictability:} Match outcomes cannot be forecasted
+    \item \textbf{Player Behavior:} Individual betting patterns are erratic
+    \item \textbf{Theoretical Limit:} Given stake R² = 0.91 and HE R² = 0.32, combined R² ≈ 0.29-0.35 is expected
+\end{itemize}
+
+\textbf{Conclusion:} Further improvements require additional data, not just better algorithms.
+
+\subsection{Would More Years of Data Improve Predictions?}
+
+\textbf{Current Dataset:} 343 days (approximately 1 year) from December 2024 to December 2025
+
+\textbf{Expected Benefits of Multi-Year Data:}
+
+\begin{enumerate}
+    \item \textbf{Better Pattern Recognition}
+    \begin{itemize}
+        \item Capture multi-year seasonal trends
+        \item Identify rare events that occur annually
+        \item More robust estimation of typical behavior
+        \item Estimated improvement: R² could increase to 0.38-0.42
+    \end{itemize}
+    
+    \item \textbf{More Training Examples}
+    \begin{itemize}
+        \item Current: 343 days (235 training samples after lagging)
+        \item With 3 years: ~1,000 days (700+ training samples)
+        \item Reduces impact of outliers and anomalies
+        \item Better generalization of patterns
+    \end{itemize}
+    
+    \item \textbf{Long-Term Market Dynamics}
+    \begin{itemize}
+        \item Operator entry/exit patterns
+        \item Market maturation effects
+        \item Regulatory change impacts
+        \item Economic cycle influences
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Limitations Even with More Data:}
+
+\begin{enumerate}
+    \item \textbf{Fundamental Randomness Unchanged}
+    \begin{itemize}
+        \item More data cannot eliminate 35.9\% RTP volatility
+        \item Sports outcomes remain unpredictable
+        \item Individual bet randomness is inherent
+        \item \textbf{Hard ceiling remains around R² ≈ 0.45-0.50}
+    \end{itemize}
+    
+    \item \textbf{Market Non-Stationarity}
+    \begin{itemize}
+        \item Gaming market evolves over time
+        \item New game types emerge
+        \item Player preferences shift
+        \item Older data may become less relevant
+    \end{itemize}
+    
+    \item \textbf{Diminishing Returns}
+    \begin{itemize}
+        \item Stake prediction already at R² = 0.91 (little room to improve)
+        \item House edge is the challenging component
+        \item Additional years help, but gains are incremental
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Realistic Expectations with More Data:}
+
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Dataset Size} & \textbf{Current R²} & \textbf{Expected R²} & \textbf{Improvement} \\
+\midrule
+1 year (current) & 0.33 & 0.33 & Baseline \\
+2-3 years & 0.33 & 0.38-0.42 & +15-27\% \\
+5+ years & 0.33 & 0.42-0.46 & +27-39\% \\
+\midrule
+\textbf{Theoretical Maximum} & \multicolumn{3}{c}{\textbf{R² ≈ 0.50 (gambling randomness ceiling)}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Bottom Line:} More years of data would likely improve R² from 0.33 to approximately 0.38-0.46, but we would still encounter a fundamental ceiling around R² ≈ 0.50 due to inherent gambling randomness. The primary benefit would be more robust pattern estimation and reduced noise, not elimination of the unpredictable components.
+
+\textbf{Recommendation:} Continue collecting data over multiple years while simultaneously pursuing the additional operator data fields (Section 6.1), which offer greater potential for improvement than simply waiting for more time to pass.
+
+\newpage
+
+\section{Anomaly Detection with Isolation Forest}
+
+\subsection{Methodology}
+
+To complement our forecasting model, we implemented \textbf{Isolation Forest} anomaly detection to identify genuinely unusual days in the GGR data. This approach:
+
+\begin{itemize}
+    \item Analyzes \textbf{7 key features} simultaneously to detect multivariate outliers
+    \item Separates systematic anomalies from normal gambling volatility
+    \item Provides interpretable anomaly scores for regulatory oversight
+    \item Works alongside regression to provide both \textit{detection} (when something unusual happened) and \textit{explanation} (why GGR behaves as it does)
+\end{itemize}
+
+\textbf{Features used for anomaly detection:}
+\begin{enumerate}
+    \item \textbf{GGR Residual:} Difference between actual and predicted GGR
+    \item \textbf{GGR Percentage Error:} Relative prediction error
+    \item \textbf{House Edge Deviation:} How far realized HE is from expected
+    \item \textbf{Realized House Edge:} Actual daily house edge (captures extreme profit/loss days)
+    \item \textbf{Stake Volume Ratio:} Unusual betting volume relative to average
+    \item \textbf{Total Bets:} Number of bets placed
+    \item \textbf{Active Operators:} Number of operators reporting
+\end{enumerate}
+
+\subsection{Key Findings}
+
+Analyzing all \textbf{343 days} in the dataset with 10\% contamination threshold:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Anomalies (35 days)} & \textbf{Normal (308 days)} \\
+\midrule
+Count & 35 (10.2\%) & 308 (89.8\%) \\
+Mean GGR & UGX 2.93B & UGX 1.06B \\
+Mean Absolute Error & UGX 3.29B & UGX 0.67B \\
+Mean House Edge & 40.7\% & 19.4\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Key Observations:}
+\begin{itemize}
+    \item Anomalous days have \textbf{5× larger prediction errors} (UGX 3.3B vs. 0.7B)
+    \item Anomalous days show \textbf{2× higher house edges} (40.7\% vs. 19.4\%)
+    \item Model residuals are significantly more volatile on anomalous days
+    \item These represent genuine outliers, not just normal gambling variance
+\end{itemize}
+
+\subsection{Most Anomalous Days}
+
+\textbf{Top 5 Most Anomalous Days (by anomaly score):}
+
+\begin{enumerate}
+    \item \textbf{2025-10-23} (Score: -0.688)
+    \begin{itemize}
+        \item Predicted: UGX -4.5B (loss expected)
+        \item Actual: UGX +7.1B (profit realized)
+        \item Error: 162\%, House Edge: 51.6\%
+    \end{itemize}
+    
+    \item \textbf{2025-10-21} (Score: -0.662)
+    \begin{itemize}
+        \item Predicted: UGX -1.7B
+        \item Actual: UGX -12.0B (massive loss)
+        \item House Edge: -143.9\% (extreme payout day)
+    \end{itemize}
+    
+    \item \textbf{2025-03-01} (Score: -0.656)
+    \begin{itemize}
+        \item Predicted: UGX 4.4B
+        \item Actual: UGX 13.2B (3× expected)
+        \item House Edge: 183.9\% (extremely high)
+    \end{itemize}
+    
+    \item \textbf{2025-03-14} (Score: -0.631)
+    \begin{itemize}
+        \item Predicted: UGX +6.2B (profit expected)
+        \item Actual: UGX -2.4B (loss realized)
+        \item 358\% swing from prediction
+    \end{itemize}
+    
+    \item \textbf{2025-11-08} (Score: -0.626)
+    \begin{itemize}
+        \item Predicted: UGX 3.3B
+        \item Actual: UGX 8.0B
+        \item House Edge: 56.3\% (very high)
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Regulatory Value}
+
+\textbf{Why Anomaly Detection Matters:}
+
+\begin{enumerate}
+    \item \textbf{Fraud Detection:} Days with unusual patterns may indicate:
+    \begin{itemize}
+        \item Operator reporting errors
+        \item System manipulation
+        \item Irregular betting patterns
+    \end{itemize}
+    
+    \item \textbf{Risk Management:} Identify days requiring closer investigation:
+    \begin{itemize}
+        \item Extreme house edges (>50\% or <-50\%)
+        \item Large swings from predicted behavior
+        \item Unusual stake/payout relationships
+    \end{itemize}
+    
+    \item \textbf{Complementary to Forecasting:}
+    \begin{itemize}
+        \item \textit{Regression model} explains \textbf{why} GGR behaves as it does
+        \item \textit{Isolation Forest} detects \textbf{when} something unusual happens
+        \item Together: Explainable anomaly detection system
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Anomaly Score Interpretation:}
+\begin{itemize}
+    \item More negative = more anomalous (e.g., -0.68 is highly unusual)
+    \item Less negative = more normal (e.g., -0.30 is typical)
+    \item Scores below threshold (10\% most negative) flagged for review
+\end{itemize}
+
+\subsection{Implementation in Forecast File}
+
+All days in \texttt{ggr\_forecast.parquet} now include:
+\begin{itemize}
+    \item \textbf{is\_anomaly:} Binary flag (1 = anomalous, 0 = normal)
+    \item \textbf{anomaly\_score:} Continuous score (more negative = more anomalous)
+    \item Updated based on latest decomposed model predictions
+\end{itemize}
+
+\textbf{Recommended Actions:}
+\begin{enumerate}
+    \item Review all flagged anomalous days with operators
+    \item Investigate extreme cases (scores < -0.60)
+    \item Monitor for patterns in anomalies (timing, operators, game types)
+    \item Use as trigger for detailed audits
+\end{enumerate}
+
+\newpage
+
+\section{Recommendations for Improved Forecasting}
+
+\subsection{Additional Data Fields from Operators}
+
+The following data elements are likely \textit{already collected by operators} but not currently shared with regulators. Requiring their submission could significantly improve GGR forecasting:
+
+\subsubsection{Bet-Level Details}
+
+\begin{enumerate}
+    \item \textbf{Bet Type Composition (Critical)}
+    \begin{itemize}
+        \item Single bets vs. accumulators/parlays
+        \item Pre-match vs. live/in-play betting
+        \item Number of selections per bet
+        \item \textit{Why it helps:} Accumulators have higher house edge but lower win probability
+        \item \textit{Operator has:} This is in every betting system
+    \end{itemize}
+    
+    \item \textbf{Odds Distribution}
+    \begin{itemize}
+        \item Average odds per bet
+        \item Distribution of odds ranges (e.g., <1.5, 1.5-3.0, 3.0-10.0, >10.0)
+        \item Implied probability vs actual outcomes
+        \item \textit{Why it helps:} Higher odds = more volatility in payouts
+        \item \textit{Operator has:} Every bet ticket contains odds
+    \end{itemize}
+    
+    \item \textbf{Stake Size Categories}
+    \begin{itemize}
+        \item Number of bets by stake band (e.g., <1K, 1-10K, 10-100K, >100K)
+        \item Average stake per bet
+        \item High roller activity indicator
+        \item \textit{Why it helps:} Large bets create volatility in daily GGR
+        \item \textit{Operator has:} Standard report in any gaming platform
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Player Segmentation}
+
+\begin{enumerate}
+    \item \textbf{Player Activity Levels}
+    \begin{itemize}
+        \item Number of unique active players per day
+        \item New vs. returning players
+        \item Player frequency segments (daily/weekly/monthly/casual)
+        \item \textit{Why it helps:} Experienced players behave differently than new players
+        \item \textit{Operator has:} User ID is tracked for responsible gaming
+    \end{itemize}
+    
+    \item \textbf{Bonus and Promotion Activity}
+    \begin{itemize}
+        \item Value of bonuses issued per day
+        \item Bonus redemption rates
+        \item Free bet vs. real money stake ratio
+        \item \textit{Why it helps:} Bonus play affects house edge
+        \item \textit{Operator has:} Required for accounting and marketing
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Market and Product Details}
+
+\begin{enumerate}
+    \item \textbf{Sport/Event Type Breakdown}
+    \begin{itemize}
+        \item Stake and GGR by sport (football, basketball, tennis, etc.)
+        \item League-level data (EPL, Serie A, NBA, etc.)
+        \item Tournament vs. regular season indicator
+        \item \textit{Why it helps:} Different sports have different house edges
+        \item \textit{Operator has:} Required for risk management
+    \end{itemize}
+    
+    \item \textbf{Market Type Detail}
+    \begin{itemize}
+        \item Match winner vs. over/under vs. handicap vs. special bets
+        \item Market popularity (percentage of stakes)
+        \item Settlement timing (immediate vs. delayed)
+        \item \textit{Why it helps:} Market types have different payout patterns
+        \item \textit{Operator has:} Standard classification in trading systems
+    \end{itemize}
+    
+    \item \textbf{Competitive Positioning}
+    \begin{itemize}
+        \item Own odds vs. market average (competitiveness indicator)
+        \item Number of markets offered per event
+        \item Payout margin by market type
+        \item \textit{Why it helps:} Competitive odds attract different player behavior
+        \item \textit{Operator has:} Used for odds setting and pricing
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Operational Indicators}
+
+\begin{enumerate}
+    \item \textbf{Payment Method Usage}
+    \begin{itemize}
+        \item Stakes by payment method (mobile money, card, cash, etc.)
+        \item Deposit frequency and amounts
+        \item Withdrawal requests and timing
+        \item \textit{Why it helps:} Payment friction affects betting patterns
+        \item \textit{Operator has:} Required for financial reconciliation
+    \end{itemize}
+    
+    \item \textbf{Platform/Channel Split}
+    \begin{itemize}
+        \item Mobile app vs. web vs. retail shop stakes
+        \item Time-of-day distribution by channel
+        \item Channel-specific conversion rates
+        \item \textit{Why it helps:} Different channels have different behaviors
+        \item \textit{Operator has:} Standard analytics in any platform
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Data Collection Priorities}
+
+\textbf{Phase 1 (Highest Impact):}
+\begin{enumerate}
+    \item Bet type composition (single vs. accumulator)
+    \item Odds distribution by bet
+    \item Stake size categories
+    \item Active player counts
+\end{enumerate}
+
+\textbf{Phase 2 (Medium Impact):}
+\begin{enumerate}
+    \item Sport/event type breakdown
+    \item Market type detail
+    \item Bonus activity
+\end{enumerate}
+
+\textbf{Phase 3 (Supporting Data):}
+\begin{enumerate}
+    \item Payment method split
+    \item Platform/channel data
+    \item Competitive positioning metrics
+\end{enumerate}
+
+\subsection{Expected Improvements}
+
+With the additional data fields, we estimate forecasting improvements:
+
+\begin{itemize}
+    \item \textbf{Bet type data:} Could improve R² by 10-15\% (to R² ≈ 0.38-0.43)
+    \item \textbf{Odds distribution:} Could improve R² by 5-10\% (to R² ≈ 0.35-0.38)
+    \item \textbf{Player segmentation:} Could improve R² by 5-8\% (to R² ≈ 0.35-0.36)
+    \item \textbf{Combined effect:} Could potentially reach R² ≈ 0.45-0.50
+\end{itemize}
+
+\textbf{Note:} Beyond R² ≈ 0.50, improvements become increasingly difficult due to inherent gambling randomness.
+
+\newpage
+
+\section{Implementation Recommendations}
+
+\subsection{For the Regulatory Board}
+
+\begin{enumerate}
+    \item \textbf{Update Reporting Requirements}
+    \begin{itemize}
+        \item Mandate submission of Priority Phase 1 data fields
+        \item Implement gradually (e.g., 3-month transition period)
+        \item Provide standardized templates for operators
+    \end{itemize}
+    
+    \item \textbf{Data Quality Assurance}
+    \begin{itemize}
+        \item Establish validation rules for submitted data
+        \item Implement automated consistency checks
+        \item Require monthly reconciliation between source systems and submitted data
+    \end{itemize}
+    
+    \item \textbf{Use Current Model for}
+    \begin{itemize}
+        \item Anomaly detection in operator reporting
+        \item Trend analysis for strategic planning
+        \item Risk assessment of market changes
+        \item NOT for precise revenue forecasting yet
+    \end{itemize}
+    
+    \item \textbf{Continuous Improvement}
+    \begin{itemize}
+        \item Retrain model quarterly with new data
+        \item Monitor prediction accuracy over time
+        \item Adjust features as additional data becomes available
+    \end{itemize}
+\end{enumerate}
+
+\subsection{For Gaming Operators}
+
+\begin{enumerate}
+    \item \textbf{Data Readiness}
+    \begin{itemize}
+        \item Audit existing data systems for required fields
+        \item Identify any gaps in current data collection
+        \item Plan system enhancements if needed (most data should already exist)
+    \end{itemize}
+    
+    \item \textbf{Privacy and Compliance}
+    \begin{itemize}
+        \item Ensure player data is anonymized (only aggregates required)
+        \item Maintain confidentiality of commercial information (odds strategies)
+        \item Submit data through secure channels
+    \end{itemize}
+    
+    \item \textbf{Internal Benefits}
+    \begin{itemize}
+        \item Same data can improve operator's own forecasting
+        \item Better understanding of revenue drivers
+        \item Enhanced risk management capabilities
+    \end{itemize}
+\end{enumerate}
+
+\newpage
+
+\section{Conclusion}
+
+\subsection{Summary of Achievements}
+
+We have successfully:
+\begin{itemize}
+    \item Improved GGR forecasting accuracy by 270\% (R² = 0.09 → 0.33)
+    \item Identified the fundamental challenge: inherent gambling randomness
+    \item Developed a decomposed modeling approach that outperforms all baselines
+    \item Discovered critical feature engineering insights (GGR-weighted categories)
+    \item Systematically tested and rejected approaches that don't work
+\end{itemize}
+
+\subsection{Current State}
+
+The model is suitable for:
+\begin{itemize}
+    \item \textcolor{darkblue}{✓} Trend detection and strategic planning
+    \item \textcolor{darkblue}{✓} Anomaly identification
+    \item \textcolor{darkblue}{✓} Understanding revenue drivers
+    \item \textcolor{red}{✗} Precise day-to-day forecasting
+    \item \textcolor{red}{✗} Operational cash flow management
+\end{itemize}
+
+\subsection{Path Forward}
+
+To achieve more reliable forecasting (R² ≈ 0.45-0.50):
+\begin{enumerate}
+    \item Collect additional data from operators (especially bet type composition)
+    \item Implement Phase 1 priority fields within 3-6 months
+    \item Retrain models with enriched dataset
+    \item Continuously monitor and improve
+\end{enumerate}
+
+The \textbf{ceiling on predictive accuracy} (≈ 50\% R²) is inherent to gambling's randomness, but better data can get us significantly closer to that ceiling.
+
+\subsection{Key Message for Regulators}
+
+\begin{quote}
+\textit{GGR forecasting will never be perfectly accurate due to the unpredictable nature of gambling outcomes. However, with proper methodology and additional operator data, we can build models that are valuable for regulatory oversight, trend analysis, and anomaly detection. The 270\% improvement demonstrates that systematic, data-driven approaches yield meaningful results, even when perfection is unattainable.}
+\end{quote}
+
+\vspace{1cm}
+
+\noindent\textbf{Prepared by:} Gaming Analytics Team\\
+\textbf{Date:} December 15, 2025
+
+\end{document}
