@@ -1,0 +1,68 @@
+================================================================================
+OPERATOR PERFORMANCE DATA SUMMARY
+================================================================================
+
+Data Structure:
+  Granularity: Operator × Day × Game Category
+  Total records: 8,203
+  File size: 0.17 MB
+
+Dimensions:
+  Unique operators: 33
+  Date range: 2024-12-30 00:00:00 to 2025-12-07 00:00:00
+  Days covered: 343
+  Game categories: ['RRI_betExchange', 'RRI_casinoGame', 'RRI_fantasy', 'RRI_fixedOdds', 'RRI_landFixedOdds']
+
+Operator Tiers:
+  Large: 5 operators
+  Large+: 3 operators
+  Medium: 6 operators
+  Medium+: 7 operators
+  Micro: 5 operators
+  Small: 5 operators
+  Top Tier: 2 operators
+
+Metrics Available:
+  • GGR (primary performance metric)
+  • total_stake (betting volume)
+  • total_payout (payout amount)
+  • total_bets (transaction count)
+  • operator_tier (for peer comparison)
+
+GGR Statistics:
+  Total GGR: UGX 429,696,744,472
+  Average daily GGR per operator: UGX 66,568,047
+  Median GGR (operator-day-category): UGX 12,200
+
+Top 5 Operators by Total GGR:
+  1. INT (Top Tier, Wager: 20,943,488,514): GGR UGX 402,822,942,698
+  2. SPO (Large+, Wager: 977,152,970): GGR UGX 8,722,519,857
+  3. MAS (Top Tier, Wager: 6,065,327,833): GGR UGX 6,465,485,338
+  4. GAR (Medium+, Wager: 68,349,705): GGR UGX 5,422,210,284
+  5. BLU (Large, Wager: 69,195,166): GGR UGX 2,057,522,975
+
+Top 5 Game Categories by Total GGR:
+  1. RRI_fixedOdds: UGX 407,915,090,690
+  2. RRI_fantasy: UGX 8,721,908,268
+  3. RRI_casinoGame: UGX 7,592,603,097
+  4. RRI_landFixedOdds: UGX 5,467,142,417
+  5. RRI_betExchange: UGX 0
+
+Query Examples:
+  # Load data
+  df = pd.read_parquet('warehouse/data/operator_performance.parquet')
+  
+  # Top 10 operators in Q4 2025
+  q4 = df[(df['date'] >= '2025-10-01') & (df['date'] <= '2025-12-31')]
+  top10 = q4.groupby('operator')['GGR'].sum().nlargest(10)
+  
+  # Compare within tier (peer comparison)
+  medium_tier = df[df['operator_tier'] == 'Medium']
+  medium_perf = medium_tier.groupby('operator')['GGR'].agg(['sum', 'mean', 'median'])
+  medium_perf['z_score'] = (medium_perf['sum'] - medium_perf['sum'].mean()) / medium_perf['sum'].std()
+  
+  # Top categories by operator
+  operator_x = df[df['operator'] == 'OperatorX']
+  top_cats = operator_x.groupby('game_category')['GGR'].sum().nlargest(3)
+
+================================================================================
