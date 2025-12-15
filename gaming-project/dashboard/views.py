@@ -94,57 +94,20 @@ def dashboard(request):
         'bottom_operators_pie_chart': generate_bottom_operators_chart(),
     }
     
-    # Game type statistics with pagination
-    all_game_types = [
-        {
-            'type': 'Sports',
-            'avg_ggr': 45.20,
-            'avg_rtp': 94.50,
-            'rtp_std_dev': 2.1543
-        },
-        {
-            'type': 'Esports',
-            'avg_ggr': 32.15,
-            'avg_rtp': 93.80,
-            'rtp_std_dev': 2.4521
-        },
-        {
-            'type': 'Card Games',
-            'avg_ggr': 38.75,
-            'avg_rtp': 96.20,
-            'rtp_std_dev': 1.8921
-        },
-        {
-            'type': 'General Betting',
-            'avg_ggr': 28.90,
-            'avg_rtp': 95.10,
-            'rtp_std_dev': 2.0143
-        },
-        {
-            'type': 'Virtual Sports',
-            'avg_ggr': 25.60,
-            'avg_rtp': 92.30,
-            'rtp_std_dev': 3.1287
-        },
-        {
-            'type': 'Roulette',
-            'avg_ggr': 41.50,
-            'avg_rtp': 97.30,
-            'rtp_std_dev': 1.5432
-        },
-        {
-            'type': 'Slots',
-            'avg_ggr': 52.30,
-            'avg_rtp': 92.80,
-            'rtp_std_dev': 3.2145
-        },
-    ]
+    # Get game category statistics from operator performance data
+    category_distribution = perf_handler.get_category_distribution(start_date, end_date)
     
-    # Paginate game types (4 per page)
-    game_page_number = request.GET.get('game_page', 1)
-    game_paginator = Paginator(all_game_types, 4)  # Show 4 game types per page
-    game_types_page = game_paginator.get_page(game_page_number)
-    context['game_type_stats'] = game_types_page
+    # Convert to list of dicts and format for template
+    game_categories = []
+    for _, row in category_distribution.iterrows():
+        game_categories.append({
+            'category': row['game_category'].replace('RRI_', '').replace('_', ' ').title(),
+            'total_ggr': row['total_ggr'],
+            'operator_count': int(row['operator_count']),
+            'market_share': row['market_share']
+        })
+    
+    context['game_categories'] = game_categories
     
     return render(request, 'dashboard/dashboard.html', context)
 
