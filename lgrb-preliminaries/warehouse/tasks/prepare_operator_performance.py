@@ -49,8 +49,9 @@ class PrepareOperatorPerformance(luigi.Task):
         df['date'] = df['timestamp_end'].dt.date
         df['date'] = pd.to_datetime(df['date'])
         
-        # Use existing GGR column (already calculated in data)
-        # GGR = stake_real_money - payout_base_win
+        # Use operator-provided GGR column (already includes refunds & adjustments)
+        # Verified: GGR = (stake_real_money + stake_free_money) - payout_base_win - refund_total - adjustment_total
+        # This is the CORRECT formula accounting for all adjustments
         
         # Aggregate by operator + date + game_category
         print("\nAggregating by operator × date × game_category...")
