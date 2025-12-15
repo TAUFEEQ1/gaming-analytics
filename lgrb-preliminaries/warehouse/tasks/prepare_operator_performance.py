@@ -57,6 +57,7 @@ class PrepareOperatorPerformance(luigi.Task):
         operator_perf = df.groupby(['operator', 'date', 'game_category'], as_index=False).agg({
             'GGR': 'sum',
             'stake_real_money': 'sum',
+            'stake_free_money': 'sum',
             'payout_base_win': 'sum',
             'no_of_bets': 'sum',
             'bets_won_cnt': 'sum',
@@ -64,9 +65,11 @@ class PrepareOperatorPerformance(luigi.Task):
             'bets_adjusted_cnt': 'sum'
         })
         
+        # Calculate total stake (real + free money)
+        operator_perf['total_stake'] = operator_perf['stake_real_money'] + operator_perf['stake_free_money']
+        
         # Rename for clarity
         operator_perf.rename(columns={
-            'stake_real_money': 'total_stake',
             'payout_base_win': 'total_payout',
             'no_of_bets': 'total_bets'
         }, inplace=True)
