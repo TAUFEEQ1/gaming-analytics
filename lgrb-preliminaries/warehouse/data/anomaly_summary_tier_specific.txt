@@ -2,8 +2,8 @@ TIER-SPECIFIC STAKE ANOMALY DETECTION SUMMARY
 ==========================================================================================
 
 Total operator-days analyzed: 4,704
-Total anomalies detected: 205
-Overall anomaly rate: 4.36%
+Total anomalies detected: 206
+Overall anomaly rate: 4.38%
 
 Risk-based contamination rates:
   Top Tier: 2.0%
