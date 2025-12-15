@@ -16,9 +16,11 @@ def home(request):
 @login_required
 def dashboard(request):
     """Main dashboard view with real parquet data"""
+    from .operator_performance_utils import OperatorPerformanceHandler
     
-    # Initialize data handler
+    # Initialize data handlers
     data_handler = GGRDataHandler()
+    perf_handler = OperatorPerformanceHandler()
     
     # Get filter period from query params (default: all)
     filter_type = request.GET.get('filter', 'all')
@@ -28,6 +30,10 @@ def dashboard(request):
         'today': 'Today',
         'week': 'This Week',
         'month': 'This Month',
+        'q1': 'Q1',
+        'q2': 'Q2',
+        'q3': 'Q3',
+        'q4': 'Q4',
         'all': 'All Time',
         'custom': 'Custom'
     }
@@ -59,6 +65,10 @@ def dashboard(request):
     # Get anomalies details
     anomalies_details = data_handler.get_anomalies_details(start_date, end_date)
     
+    # Get operator performance data
+    top_performers = perf_handler.get_top_performers(n=5, start_date=start_date, end_date=end_date)
+    bottom_performers = perf_handler.get_bottom_performers(n=5, start_date=start_date, end_date=end_date)
+    
     context = {
         'filter_period': filter_period,
         'total_ggr': kpis['total_ggr'],
@@ -73,6 +83,10 @@ def dashboard(request):
         
         # Anomalies details for modal
         'anomalies_details': anomalies_details,
+        
+        # Operator performance data
+        'top_performers': top_performers.to_dict('records'),
+        'bottom_performers': bottom_performers.to_dict('records'),
         
         # Chart data as HTML (using Plotly or similar)
         'sector_ggr_line_chart': generate_sector_ggr_chart(),

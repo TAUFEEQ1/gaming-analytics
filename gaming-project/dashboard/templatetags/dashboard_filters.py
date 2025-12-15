@@ -28,3 +28,14 @@ def humanize_number(value):
         return f"{sign}{abs_num / 1_000:.2f}K"
     else:
         return f"{sign}{abs_num:.2f}"
+
+
+@register.filter
+def abs_value(value):
+    """
+    Return absolute value of a number
+    """
+    try:
+        return abs(float(value))
+    except (ValueError, TypeError):
+        return value
