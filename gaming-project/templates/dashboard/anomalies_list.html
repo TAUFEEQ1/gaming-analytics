@@ -194,7 +194,31 @@
                         </thead>
                         <tbody>
                             {% for anomaly in anomalies %}
-                            <tr>
+                            <tr class="anomaly-row" style="cursor: pointer;"
+                                data-anomaly='{
+                                    "date": "{{ anomaly.date|date:"d/m/Y H:i" }}",
+                                    "operator": "{{ anomaly.operator_name }}",
+                                    "operator_tier": "{{ anomaly.operator_tier }}",
+                                    "game_type": "{{ anomaly.game_type }}",
+                                    "anomaly_type": "{{ anomaly.anomaly_type }}",
+                                    "stakes": {{ anomaly.stakes }},
+                                    "stake_predicted": {{ anomaly.stake_predicted }},
+                                    "stake_deviation": {{ anomaly.stake_deviation }},
+                                    "stake_deviation_pct": {{ anomaly.stake_deviation_pct }},
+                                    "anomaly_score_stake": {{ anomaly.anomaly_score_stake }},
+                                    "payouts": {{ anomaly.payouts }},
+                                    "payout_predicted": {{ anomaly.payout_predicted }},
+                                    "payout_deviation": {{ anomaly.payout_deviation }},
+                                    "payout_deviation_pct": {{ anomaly.payout_deviation_pct }},
+                                    "anomaly_score_payout": {{ anomaly.anomaly_score_payout }},
+                                    "rtp": {{ anomaly.rtp }},
+                                    "ggr": {{ anomaly.ggr }},
+                                    "dominant_stake_category": "{{ anomaly.dominant_stake_category }}",
+                                    "dominant_payout_category": "{{ anomaly.dominant_payout_category }}",
+                                    "top_games": "{{ anomaly.top_games }}",
+                                    "stake_flagged": {{ anomaly.stake_flagged|lower }},
+                                    "payout_flagged": {{ anomaly.payout_flagged|lower }}
+                                }'>
                                 <td class="text-muted small">{{ anomaly.date|date:"d/m/Y H:i" }}</td>
                                 <td class="fw-bold">
                                     <a href="{% url 'performance_detail' anomaly.operator_code %}" class="text-decoration-none">
@@ -312,6 +336,164 @@
         </div>
     </div>
 </div>
+
+<!-- Anomaly Details Modal -->
+<div class="modal fade" id="anomalyModal" tabindex="-1" aria-labelledby="anomalyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="anomalyModalLabel">Anomaly Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Operator & Date Info -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Operator</h6>
+                        <p class="fw-bold mb-0" id="modal-operator"></p>
+                        <small class="text-muted" id="modal-tier"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Date</h6>
+                        <p class="mb-0" id="modal-date"></p>
+                    </div>
+                </div>
+
+                <!-- Anomaly Type Badge -->
+                <div class="mb-4">
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Anomaly Classification</h6>
+                    <span class="badge bg-primary" id="modal-anomaly-type"></span>
+                </div>
+
+                <!-- Game Information -->
+                <div class="mb-4">
+                    <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.75rem;">Game Information</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Game Type</small>
+                            <p class="mb-0" id="modal-game-type"></p>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Stake Category</small>
+                            <p class="mb-0" id="modal-stake-category"></p>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Payout Category</small>
+                            <p class="mb-0" id="modal-payout-category"></p>
+                        </div>
+                    </div>
+                    <div class="mt-2" id="modal-top-games-container" style="display: none;">
+                        <small class="text-muted d-block">Top Games</small>
+                        <p class="mb-0" id="modal-top-games"></p>
+                    </div>
+                </div>
+
+                <!-- Stake Analysis -->
+                <div class="mb-4" id="stake-analysis">
+                    <h6 class="text-muted text-uppercase mb-3" style="font-size: 0.75rem;">
+                        <svg class="icon icon-xs text-warning me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Stake Analysis
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light border-0 mb-2">
+                                <div class="card-body py-2">
+                                    <small class="text-muted d-block">Actual Stake</small>
+                                    <p class="fw-bold mb-0" id="modal-stake-actual"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light border-0 mb-2">
+                                <div class="card-body py-2">
+                                    <small class="text-muted d-block">Expected Stake</small>
+                                    <p class="mb-0" id="modal-stake-predicted"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 mb-2" id="stake-deviation-card">
+                                <div class="card-body py-2">
+                                    <small class="text-muted d-block">Deviation</small>
+                                    <p class="fw-bold mb-0" id="modal-stake-deviation"></p>
+                                    <small class="text-muted" id="modal-stake-deviation-pct"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Anomaly Score: <span id="modal-stake-score" class="fw-bold"></span></small>
+                    </div>
+                </div>
+
+                <!-- Payout Analysis -->
+                <div class="mb-4" id="payout-analysis">
+                    <h6 class="text-muted text-uppercase mb-3" style="font-size: 0.75rem;">
+                        <svg class="icon icon-xs text-danger me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Payout Analysis
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light border-0 mb-2">
+                                <div class="card-body py-2">
+                                    <small class="text-muted d-block">Actual Payout</small>
+                                    <p class="fw-bold mb-0" id="modal-payout-actual"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light border-0 mb-2">
+                                <div class="card-body py-2">
+                                    <small class="text-muted d-block">Expected Payout</small>
+                                    <p class="mb-0" id="modal-payout-predicted"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 mb-2" id="payout-deviation-card">
+                                <div class="card-body py-2">
+                                    <small class="text-muted d-block">Deviation</small>
+                                    <p class="fw-bold mb-0" id="modal-payout-deviation"></p>
+                                    <small class="text-muted" id="modal-payout-deviation-pct"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Anomaly Score: <span id="modal-payout-score" class="fw-bold"></span></small>
+                    </div>
+                </div>
+
+                <!-- Key Metrics -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0">
+                            <div class="card-body py-2">
+                                <small class="text-muted d-block">RTP (Return to Player)</small>
+                                <p class="fw-bold mb-0" id="modal-rtp"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0">
+                            <div class="card-body py-2">
+                                <small class="text-muted d-block">GGR (Gross Gaming Revenue)</small>
+                                <p class="fw-bold mb-0" id="modal-ggr"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -339,6 +521,120 @@ $(document).ready(function() {
         dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
              "<'row'<'col-sm-12'tr>>" +
              "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+    });
+
+    // Handle anomaly row clicks
+    $('#anomaliesTable').on('click', '.anomaly-row', function(e) {
+        // Don't open modal if clicking on the operator link
+        if ($(e.target).closest('a').length) {
+            return;
+        }
+
+        const anomalyData = JSON.parse($(this).attr('data-anomaly'));
+        
+        // Helper function to format numbers
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0 
+            }).format(num);
+        }
+
+        function formatCurrency(num) {
+            return 'UGX ' + formatNumber(num);
+        }
+
+        function getSeverityColor(devPct) {
+            const absDev = Math.abs(devPct);
+            if (absDev >= 100) return 'bg-danger';
+            if (absDev >= 50) return 'bg-warning';
+            if (absDev >= 20) return 'bg-info';
+            return 'bg-light';
+        }
+
+        // Populate modal fields
+        $('#modal-operator').text(anomalyData.operator);
+        $('#modal-tier').text(anomalyData.operator_tier);
+        $('#modal-date').text(anomalyData.date);
+        $('#modal-game-type').text(anomalyData.game_type);
+        $('#modal-anomaly-type').text(anomalyData.anomaly_type)
+            .removeClass('bg-primary bg-warning bg-danger')
+            .addClass(anomalyData.anomaly_type === 'Both' ? 'bg-danger' : 
+                     anomalyData.anomaly_type === 'Stake Only' ? 'bg-warning' : 'bg-primary');
+
+        // Game information
+        $('#modal-stake-category').text(anomalyData.dominant_stake_category || 'N/A');
+        $('#modal-payout-category').text(anomalyData.dominant_payout_category || 'N/A');
+        
+        if (anomalyData.top_games && anomalyData.top_games.trim()) {
+            $('#modal-top-games').text(anomalyData.top_games);
+            $('#modal-top-games-container').show();
+        } else {
+            $('#modal-top-games-container').hide();
+        }
+
+        // Stake analysis - always show for context
+        $('#stake-analysis').show();
+        $('#modal-stake-actual').text(formatCurrency(anomalyData.stakes));
+        $('#modal-stake-predicted').text(formatCurrency(anomalyData.stake_predicted));
+        $('#modal-stake-deviation').text(formatCurrency(anomalyData.stake_deviation));
+        $('#modal-stake-deviation-pct').text(anomalyData.stake_deviation_pct.toFixed(2) + '%');
+        $('#modal-stake-score').text(anomalyData.anomaly_score_stake.toFixed(3));
+        
+        // Color code the deviation card based on whether it's flagged
+        if (anomalyData.stake_flagged) {
+            $('#stake-deviation-card').removeClass('bg-danger bg-warning bg-info bg-light')
+                .addClass(getSeverityColor(anomalyData.stake_deviation_pct));
+            $('#stake-analysis h6').html(`
+                <svg class="icon icon-xs text-warning me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                Stake Analysis <span class="badge bg-warning text-dark ms-2">FLAGGED</span>
+            `);
+        } else {
+            $('#stake-deviation-card').removeClass('bg-danger bg-warning bg-info').addClass('bg-light');
+            $('#stake-analysis h6').html(`
+                <svg class="icon icon-xs text-muted me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
+                </svg>
+                Stake Analysis
+            `);
+        }
+
+        // Payout analysis - always show for context
+        $('#payout-analysis').show();
+        $('#modal-payout-actual').text(formatCurrency(anomalyData.payouts));
+        $('#modal-payout-predicted').text(formatCurrency(anomalyData.payout_predicted));
+        $('#modal-payout-deviation').text(formatCurrency(anomalyData.payout_deviation));
+        $('#modal-payout-deviation-pct').text(anomalyData.payout_deviation_pct.toFixed(2) + '%');
+        $('#modal-payout-score').text(anomalyData.anomaly_score_payout.toFixed(3));
+        
+        // Color code the deviation card based on whether it's flagged
+        if (anomalyData.payout_flagged) {
+            $('#payout-deviation-card').removeClass('bg-danger bg-warning bg-info bg-light')
+                .addClass(getSeverityColor(anomalyData.payout_deviation_pct));
+            $('#payout-analysis h6').html(`
+                <svg class="icon icon-xs text-danger me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                Payout Analysis <span class="badge bg-danger ms-2">FLAGGED</span>
+            `);
+        } else {
+            $('#payout-deviation-card').removeClass('bg-danger bg-warning bg-info').addClass('bg-light');
+            $('#payout-analysis h6').html(`
+                <svg class="icon icon-xs text-muted me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
+                </svg>
+                Payout Analysis
+            `);
+        }
+
+        // Key metrics
+        $('#modal-rtp').text(anomalyData.rtp.toFixed(2) + '%');
+        $('#modal-ggr').text(formatCurrency(anomalyData.ggr));
+
+        // Show the modal
+        $('#anomalyModal').modal('show');
     });
 });
 </script>

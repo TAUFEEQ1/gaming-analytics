@@ -359,70 +359,72 @@ def excluded_operator_detail(request, operator_code):
 @login_required
 def anomalies_list(request):
     """Anomalies list view with filtering by operator"""
-    import random
-    from datetime import datetime, timedelta
+    from .data_utils import AnomalyDataHandler
     
     # Get operator filter from query params
     operator_filter = request.GET.get('operator', 'all')
     
-    # Mock operators list
+    # Load real anomaly data
+    handler = AnomalyDataHandler()
+    anomalies_df = handler.anomalies_df.copy()
+    
+    # Get unique operators from the data
+    unique_operators = sorted(anomalies_df['operator'].unique())
     operators = [
-        {'code': f'OP{str(i).zfill(3)}', 'name': f'Operator {i}'} 
-        for i in range(1, 51)
+        {'code': op, 'name': op}
+        for op in unique_operators
     ]
     
-    # Generate mock anomalous transactions
-    game_types = ['Sports Betting', 'Slots', 'Roulette', 'Card Games', 
-                  'Virtual Sports', 'Esports', 'Live Casino', 'Poker']
+    # Filter by operator if specified
+    if operator_filter != 'all':
+        anomalies_df = anomalies_df[anomalies_df['operator'] == operator_filter]
     
+    # Convert to list of dicts for template
     anomalies = []
-    anomaly_id = 1
-    
-    # Generate 150 anomalous transactions across operators
-    for _ in range(150):
-        operator = random.choice(operators)
-        
-        # Skip if filtering by specific operator
-        if operator_filter != 'all' and operator['code'] != operator_filter:
-            continue
-            
-        game_type = random.choice(game_types)
-        
-        # Generate anomalous transaction
-        is_stake_anomaly = random.choice([True, False])
-        
-        if is_stake_anomaly:
-            # High stake anomaly
-            stakes = random.randint(8_000_000, 25_000_000)
-            rtp = random.uniform(0.88, 0.97)
-            payouts = round(stakes * rtp)
-        else:
-            # High payout / RTP anomaly
-            stakes = random.randint(1_000_000, 5_000_000)
-            rtp = random.uniform(0.985, 1.05)  # Unusually high RTP
-            payouts = round(stakes * rtp)
-        
+    for _, row in anomalies_df.iterrows():
+        stakes = float(row.get('total_stake', 0))
+        payouts = float(row.get('total_payout', 0))
         ggr = stakes - payouts
+        rtp = (payouts / stakes * 100) if stakes > 0 else 0
         
-        # Generate random date within last 30 days
-        days_ago = random.randint(0, 30)
-        anomaly_date = datetime.now() - timedelta(days=days_ago, hours=random.randint(0, 23))
+        # Determine anomaly flags based on thresholds
+        stake_flagged = bool(row.get('is_anomaly_stake', 0))
+        payout_flagged = bool(row.get('is_anomaly_payout', 0))
+        
+        # Get game type from available fields (prefer dominant_game_category)
+        game_type = row.get('dominant_game_category', row.get('dominant_game_type', row.get('game_type', 'Unknown')))
+        # Clean up game type display (remove RRI_ prefix if present)
+        if isinstance(game_type, str) and game_type.startswith('RRI_'):
+            game_type = game_type.replace('RRI_', '').replace('_', ' ').title()
         
         anomalies.append({
-            'id': anomaly_id,
-            'operator_code': operator['code'],
-            'operator_name': operator['name'],
+            'operator_code': row.get('operator', ''),
+            'operator_name': row.get('operator', ''),
+            'operator_tier': row.get('operator_tier', 'N/A'),
             'game_type': game_type,
             'stakes': stakes,
             'payouts': payouts,
             'ggr': ggr,
-            'rtp': rtp * 100,
-            'date': anomaly_date,
-            'anomaly_type': 'High Stake' if is_stake_anomaly else 'High Payout',
-            'stake_flagged': is_stake_anomaly,
-            'payout_flagged': not is_stake_anomaly,
+            'rtp': rtp,
+            'date': row.get('date'),
+            'stake_flagged': stake_flagged,
+            'payout_flagged': payout_flagged,
+            'anomaly_type': row.get('anomaly_type', 'Unknown'),
+            # Stake details
+            'stake_predicted': float(row.get('stake_predicted', 0)),
+            'stake_deviation': float(row.get('stake_deviation', 0)),
+            'stake_deviation_pct': float(row.get('stake_deviation_pct', 0)),
+            'anomaly_score_stake': float(row.get('anomaly_score_stake', 0)),
+            # Payout details
+            'payout_predicted': float(row.get('payout_predicted', 0)),
+            'payout_deviation': float(row.get('payout_deviation', 0)),
+            'payout_deviation_pct': float(row.get('payout_deviation_pct', 0)),
+            'anomaly_score_payout': float(row.get('anomaly_score_payout', 0)),
+            # Game details
+            'dominant_stake_category': row.get('dominant_stake_category', ''),
+            'dominant_payout_category': row.get('dominant_payout_category', ''),
+            'top_games': row.get('top_games', ''),
         })
-        anomaly_id += 1
     
     # Sort by date descending
     anomalies.sort(key=lambda x: x['date'], reverse=True)
@@ -431,13 +433,19 @@ def anomalies_list(request):
     total_anomalies = len(anomalies)
     stake_anomalies = len([a for a in anomalies if a['stake_flagged']])
     payout_anomalies = len([a for a in anomalies if a['payout_flagged']])
-    total_flagged_stakes = sum(a['stakes'] for a in anomalies if a['stake_flagged'])
-    total_flagged_payouts = sum(a['payouts'] for a in anomalies if a['payout_flagged'])
-    avg_stake_anomaly = total_flagged_stakes / stake_anomalies if stake_anomalies > 0 else 0
-    avg_payout_anomaly = total_flagged_payouts / payout_anomalies if payout_anomalies > 0 else 0
+    
+    # Calculate stake average (filter out negative stakes which are data errors)
+    positive_stake_anomalies = [a for a in anomalies if a['stake_flagged'] and a['stakes'] > 0]
+    total_flagged_stakes = sum(a['stakes'] for a in positive_stake_anomalies)
+    avg_stake_anomaly = total_flagged_stakes / len(positive_stake_anomalies) if positive_stake_anomalies else 0
+    
+    # Calculate payout average (filter out negative payouts which represent refunds/chargebacks)
+    positive_payout_anomalies = [a for a in anomalies if a['payout_flagged'] and a['payouts'] > 0]
+    total_flagged_payouts = sum(a['payouts'] for a in positive_payout_anomalies)
+    avg_payout_anomaly = total_flagged_payouts / len(positive_payout_anomalies) if positive_payout_anomalies else 0
     
     context = {
-        'anomalies': anomalies[:50],  # Show first 50
+        'anomalies': anomalies,
         'operators': operators,
         'selected_operator': operator_filter,
         'total_anomalies': total_anomalies,
