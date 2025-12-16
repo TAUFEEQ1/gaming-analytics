@@ -201,7 +201,7 @@
                                         <tr>
                                             <th class="border-0">Operator</th>
                                             <th class="border-0">Tier</th>
-                                            <th class="border-0">GGR (UGX M)</th>
+                                            <th class="border-0">GGR (UGX)</th>
                                             <th class="border-0">Anomalies (S/P)</th>
                                             <th class="border-0">Action</th>
                                         </tr>
@@ -220,8 +220,8 @@
                                             <td>
                                                 <span class="badge bg-secondary">{{ operator.operator_tier }}</span>
                                             </td>
-                                            <td class="fw-bold">
-                                                {{ operator.ggr_millions|floatformat:2 }}
+                                            <td class="fw-bold" data-order="{{ operator.ggr }}">
+                                                {{ operator.ggr|humanize_number }}
                                             </td>
                                             <td class="fw-bolder text-gray-500">
                                                 {% if operator.stake_anomalies > 0 %}
@@ -290,7 +290,7 @@
                 <div class="card-body">
                     <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total GGR</h6>
                     <h3 class="fw-bold mb-0 text-success">UGX {{ total_ggr|humanize_number }}</h3>
-                    <p class="text-muted small mb-0 mt-2">Average: UGX {{ avg_ggr|floatformat:2 }}M</p>
+                    <p class="text-muted small mb-0 mt-2">Average: UGX {{ avg_ggr|humanize_number }}</p>
                 </div>
             </div>
 

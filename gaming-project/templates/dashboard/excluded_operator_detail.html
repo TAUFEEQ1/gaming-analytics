@@ -250,23 +250,25 @@
                         </thead>
                         <tbody>
                             {% for record in daily_records %}
-                            <tr class="{% if record.is_zero_stake %}zero-stake{% endif %}">
+                            <tr class="{% if record.is_zero_stake %}zero-stake{% endif %}{% if record.is_excluded %} table-secondary{% endif %}">
                                 <td class="text-muted small">{{ record.date|date:"d/m/Y" }}</td>
                                 <td>
-                                    {{ record.total_stake|floatformat:0 }}
+                                    {{ record.total_stake|humanize_number }}
                                     {% if record.is_zero_stake %}
                                     <span class="badge bg-secondary badge-sm">Zero</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {{ record.total_payout|floatformat:0 }}
+                                    {{ record.total_payout|humanize_number }}
                                     {% if record.is_zero_payout %}
                                     <span class="badge bg-secondary badge-sm">Zero</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ record.ggr|floatformat:0 }}</td>
+                                <td>{{ record.ggr|humanize_number }}</td>
                                 <td>
-                                    {% if record.is_zero_stake %}
+                                    {% if record.is_excluded %}
+                                    <span class="badge bg-warning text-dark">Excluded</span>
+                                    {% elif record.is_zero_stake %}
                                     <span class="badge bg-secondary">Inactive</span>
                                     {% else %}
                                     <span class="badge bg-success">Active</span>
@@ -307,12 +309,12 @@
                     
                     <div class="mb-2">
                         <small class="text-muted d-block">Avg Stake/Day</small>
-                        <span class="fw-bold">UGX {{ avg_stake|floatformat:0 }}</span>
+                        <span class="fw-bold">UGX {{ avg_stake|humanize_number }}</span>
                     </div>
                     
                     <div class="mb-0">
                         <small class="text-muted d-block">Avg Payout/Day</small>
-                        <span class="fw-bold">UGX {{ avg_payout|floatformat:0 }}</span>
+                        <span class="fw-bold">UGX {{ avg_payout|humanize_number }}</span>
                     </div>
                 </div>
             </div>
