@@ -333,19 +333,22 @@ class AnomalyDataHandler:
             'ggr': operator_df['ggr'].tolist()
         }
         
-        # Get anomaly records
-        anomalies = operator_df[operator_df['is_anomaly_combined'] == 1].copy()
+        # Get anomaly records - check for any anomaly (stake or payout)
+        anomalies = operator_df[
+            (operator_df['is_anomaly_stake'].astype(bool)) | 
+            (operator_df['is_anomaly_payout'].astype(bool))
+        ].copy()
         anomaly_records = []
         
         for _, row in anomalies.iterrows():
             anomaly_records.append({
                 'date': row['date'],
-                'anomaly_type': row['anomaly_type'],
+                'anomaly_type': str(row.get('anomaly_type', 'Anomaly')),
                 'total_stake': float(row['total_stake']),
                 'total_payout': float(row['total_payout']),
                 'ggr': float(row['ggr']),
-                'stake_flagged': row['is_anomaly_stake'] == 1,
-                'payout_flagged': row['is_anomaly_payout'] == 1,
+                'stake_flagged': bool(row.get('is_anomaly_stake', 0)),
+                'payout_flagged': bool(row.get('is_anomaly_payout', 0)),
                 'stake_deviation_pct': float(row['stake_deviation_pct']) if pd.notna(row['stake_deviation_pct']) else None,
                 'payout_deviation_pct': float(row['payout_deviation_pct']) if pd.notna(row['payout_deviation_pct']) else None,
                 'stake_predicted': float(row['stake_predicted']) if pd.notna(row['stake_predicted']) else None,
@@ -403,9 +406,9 @@ class AnomalyDataHandler:
             'total_payout': total_payout,
             'total_ggr': total_ggr,
             'record_count': len(operator_df),
-            'anomaly_count': int(operator_df['is_anomaly_combined'].sum()),
-            'stake_anomaly_count': int(operator_df['is_anomaly_stake'].sum()),
-            'payout_anomaly_count': int(operator_df['is_anomaly_payout'].sum()),
+            'anomaly_count': int((operator_df['is_anomaly_stake'].astype(bool) | operator_df['is_anomaly_payout'].astype(bool)).sum()),
+            'stake_anomaly_count': int(operator_df['is_anomaly_stake'].astype(bool).sum()),
+            'payout_anomaly_count': int(operator_df['is_anomaly_payout'].astype(bool).sum()),
             'time_series': time_series,
             'anomaly_records': anomaly_records,
             'all_records': all_records,

@@ -260,7 +260,7 @@ def performance_detail(request, operator_code):
             'stakes': json.dumps(operator_data['time_series']['stakes']),
             'payouts': json.dumps(operator_data['time_series']['payouts']),
         },
-        'transactions': operator_data['all_records'][:100],  # Show most recent 100 in table
+        'transactions': operator_data['all_records'],  # Show all records in table (DataTables will handle pagination)
         'anomaly_records': operator_data['anomaly_records'][:20],  # Show most recent 20 anomalies in sidebar
         'filter_period': filter_period,
         'current_filter': filter_type,
