@@ -226,16 +226,16 @@
                                     </a>
                                 </td>
                                 <td>{{ anomaly.game_type }}</td>
-                                <td class="{% if anomaly.stake_flagged %}table-cell-flagged{% endif %}">
-                                    {{ anomaly.stakes|floatformat:0 }}
+                                <td class="{% if anomaly.stake_flagged %}table-cell-flagged{% endif %}" data-order="{{ anomaly.stakes }}">
+                                    {{ anomaly.stakes|humanize_number }}
                                     {% if anomaly.stake_flagged %}
                                     <svg class="icon icon-xs text-warning ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                     </svg>
                                     {% endif %}
                                 </td>
-                                <td class="{% if anomaly.payout_flagged %}table-cell-flagged{% endif %}">
-                                    {{ anomaly.payouts|floatformat:0 }}
+                                <td class="{% if anomaly.payout_flagged %}table-cell-flagged{% endif %}" data-order="{{ anomaly.payouts }}">
+                                    {{ anomaly.payouts|humanize_number }}
                                     {% if anomaly.payout_flagged %}
                                     <svg class="icon icon-xs text-danger ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -416,9 +416,8 @@
                         <div class="col-md-4">
                             <div class="card border-0 mb-2" id="stake-deviation-card">
                                 <div class="card-body py-2">
-                                    <small class="text-muted d-block">Deviation</small>
+                                    <small class="d-block" id="stake-deviation-label">Deviation</small>
                                     <p class="fw-bold mb-0" id="modal-stake-deviation"></p>
-                                    <small class="text-muted" id="modal-stake-deviation-pct"></small>
                                 </div>
                             </div>
                         </div>
@@ -456,7 +455,7 @@
                         <div class="col-md-4">
                             <div class="card border-0 mb-2" id="payout-deviation-card">
                                 <div class="card-body py-2">
-                                    <small class="text-muted d-block">Deviation</small>
+                                    <small class="d-block" id="payout-deviation-label">Deviation</small>
                                     <p class="fw-bold mb-0" id="modal-payout-deviation"></p>
                                     <small class="text-muted" id="modal-payout-deviation-pct"></small>
                                 </div>
@@ -532,16 +531,26 @@ $(document).ready(function() {
 
         const anomalyData = JSON.parse($(this).attr('data-anomaly'));
         
-        // Helper function to format numbers
-        function formatNumber(num) {
-            return new Intl.NumberFormat('en-US', { 
-                minimumFractionDigits: 0, 
-                maximumFractionDigits: 0 
-            }).format(num);
+        // Helper function to humanize numbers like the Django filter
+        function humanizeNumber(num) {
+            const absNum = Math.abs(num);
+            const sign = num < 0 ? '-' : '';
+            
+            if (absNum >= 1000000000000) {
+                return sign + (absNum / 1000000000000).toFixed(2) + 'T';
+            } else if (absNum >= 1000000000) {
+                return sign + (absNum / 1000000000).toFixed(2) + 'B';
+            } else if (absNum >= 1000000) {
+                return sign + (absNum / 1000000).toFixed(2) + 'M';
+            } else if (absNum >= 1000) {
+                return sign + (absNum / 1000).toFixed(2) + 'K';
+            } else {
+                return sign + absNum.toFixed(2);
+            }
         }
 
         function formatCurrency(num) {
-            return 'UGX ' + formatNumber(num);
+            return 'UGX ' + humanizeNumber(num);
         }
 
         function getSeverityColor(devPct) {
@@ -577,14 +586,21 @@ $(document).ready(function() {
         $('#stake-analysis').show();
         $('#modal-stake-actual').text(formatCurrency(anomalyData.stakes));
         $('#modal-stake-predicted').text(formatCurrency(anomalyData.stake_predicted));
-        $('#modal-stake-deviation').text(formatCurrency(anomalyData.stake_deviation));
-        $('#modal-stake-deviation-pct').text(anomalyData.stake_deviation_pct.toFixed(2) + '%');
+        
+        // Format deviation as "UGX 841.96M - 2.2x"
+        const stakeMultiplier = Math.abs(anomalyData.stake_deviation_pct) / 100;
+        const stakeMultiplierText = stakeMultiplier.toFixed(1) + 'x';
+        $('#modal-stake-deviation').text(formatCurrency(anomalyData.stake_deviation) + ' - ' + stakeMultiplierText);
+        
         $('#modal-stake-score').text(anomalyData.anomaly_score_stake.toFixed(3));
         
         // Color code the deviation card based on whether it's flagged
         if (anomalyData.stake_flagged) {
             $('#stake-deviation-card').removeClass('bg-danger bg-warning bg-info bg-light')
                 .addClass(getSeverityColor(anomalyData.stake_deviation_pct));
+            // Use white text for flagged anomalies
+            $('#stake-deviation-label').removeClass('text-muted').addClass('text-white-50');
+            $('#modal-stake-deviation').removeClass('text-dark').addClass('text-white');
             $('#stake-analysis h6').html(`
                 <svg class="icon icon-xs text-warning me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -593,6 +609,9 @@ $(document).ready(function() {
             `);
         } else {
             $('#stake-deviation-card').removeClass('bg-danger bg-warning bg-info').addClass('bg-light');
+            // Use normal text styling for non-flagged
+            $('#stake-deviation-label').removeClass('text-white-50').addClass('text-muted');
+            $('#modal-stake-deviation').removeClass('text-white').addClass('text-dark');
             $('#stake-analysis h6').html(`
                 <svg class="icon icon-xs text-muted me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
@@ -605,14 +624,21 @@ $(document).ready(function() {
         $('#payout-analysis').show();
         $('#modal-payout-actual').text(formatCurrency(anomalyData.payouts));
         $('#modal-payout-predicted').text(formatCurrency(anomalyData.payout_predicted));
-        $('#modal-payout-deviation').text(formatCurrency(anomalyData.payout_deviation));
-        $('#modal-payout-deviation-pct').text(anomalyData.payout_deviation_pct.toFixed(2) + '%');
+        
+        // Format deviation as "UGX 841.96M - 2.2x"
+        const payoutMultiplier = Math.abs(anomalyData.payout_deviation_pct) / 100;
+        const payoutMultiplierText = payoutMultiplier.toFixed(1) + 'x';
+        $('#modal-payout-deviation').text(formatCurrency(anomalyData.payout_deviation) + ' - ' + payoutMultiplierText);
+        
         $('#modal-payout-score').text(anomalyData.anomaly_score_payout.toFixed(3));
         
         // Color code the deviation card based on whether it's flagged
         if (anomalyData.payout_flagged) {
             $('#payout-deviation-card').removeClass('bg-danger bg-warning bg-info bg-light')
                 .addClass(getSeverityColor(anomalyData.payout_deviation_pct));
+            // Use white text for flagged anomalies
+            $('#payout-deviation-label').removeClass('text-muted').addClass('text-white-50');
+            $('#modal-payout-deviation').removeClass('text-dark').addClass('text-white');
             $('#payout-analysis h6').html(`
                 <svg class="icon icon-xs text-danger me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -621,6 +647,9 @@ $(document).ready(function() {
             `);
         } else {
             $('#payout-deviation-card').removeClass('bg-danger bg-warning bg-info').addClass('bg-light');
+            // Use normal text styling for non-flagged
+            $('#payout-deviation-label').removeClass('text-white-50').addClass('text-muted');
+            $('#modal-payout-deviation').removeClass('text-white').addClass('text-dark');
             $('#payout-analysis h6').html(`
                 <svg class="icon icon-xs text-muted me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"></path>
