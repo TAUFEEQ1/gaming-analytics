@@ -161,6 +161,33 @@
             </button>
         </div>
     </div>
+
+    <!-- Date Range Filter -->
+    <div class="card border-0 shadow-sm my-4">
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <label class="me-2 mb-0 text-muted small fw-bold">Period:</label>
+                        <select class="form-select form-select-sm w-auto me-2" id="filterSelect" onchange="applyFilter()">
+                            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Time</option>
+                            <option value="today" {% if current_filter == 'today' %}selected{% endif %}>Today</option>
+                            <option value="week" {% if current_filter == 'week' %}selected{% endif %}>This Week</option>
+                            <option value="month" {% if current_filter == 'month' %}selected{% endif %}>This Month</option>
+                            <option value="q1" {% if current_filter == 'q1' %}selected{% endif %}>Q1</option>
+                            <option value="q2" {% if current_filter == 'q2' %}selected{% endif %}>Q2</option>
+                            <option value="q3" {% if current_filter == 'q3' %}selected{% endif %}>Q3</option>
+                            <option value="q4" {% if current_filter == 'q4' %}selected{% endif %}>Q4</option>
+                        </select>
+                        <span class="text-muted small">{{ filter_period }}</span>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge bg-info">{{ total_operators }} Operators</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
     <div class="row">
@@ -172,7 +199,8 @@
                                 <table id="operatorsTable" class="table table-centered table-nowrap mb-0 rounded">
                                     <thead class="thead-light">
                                         <tr>
-                                            <th class="border-0">Name</th>
+                                            <th class="border-0">Operator</th>
+                                            <th class="border-0">Tier</th>
                                             <th class="border-0">GGR (UGX M)</th>
                                             <th class="border-0">Anomalies (S/P)</th>
                                             <th class="border-0">Action</th>
@@ -186,11 +214,14 @@
                                                     <svg class="icon icon-xs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                                                     </svg>
-                                                    {{ operator.name }}
+                                                    {{ operator.operator }}
                                                 </span>
                                             </td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ operator.operator_tier }}</span>
+                                            </td>
                                             <td class="fw-bold">
-                                                {{ operator.ggr }}
+                                                {{ operator.ggr_millions|floatformat:2 }}
                                             </td>
                                             <td class="fw-bolder text-gray-500">
                                                 {% if operator.stake_anomalies > 0 %}
@@ -205,7 +236,7 @@
                                                 {% endif %}
                                             </td>
                                             <td>
-                                                <a href="{% url 'performance_detail' operator.code %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center">
+                                                <a href="{% url 'performance_detail' operator.operator %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center">
                                                     <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
                                                         <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
@@ -293,7 +324,7 @@
         $('#operatorsTable').DataTable({
             responsive: true,
             pageLength: 10,
-            order: [[1, 'desc']], // Sort by GGR descending
+            order: [[2, 'desc']], // Sort by GGR descending
             language: {
                 search: "_INPUT_",
                 searchPlaceholder: "Search operators...",
@@ -303,9 +334,16 @@
                 infoFiltered: "(filtered from _MAX_ total operators)"
             },
             columnDefs: [
-                { orderable: false, targets: 3 } // Disable sorting on action column
+                { orderable: false, targets: 4 } // Disable sorting on action column
             ]
         });
     });
+
+    function applyFilter() {
+        const filter = document.getElementById('filterSelect').value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('filter', filter);
+        window.location.href = url.toString();
+    }
 </script>
 {% endblock %}

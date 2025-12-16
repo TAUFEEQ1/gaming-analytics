@@ -116,26 +116,59 @@ def profile(request):
 
 @login_required
 def operators_list(request):
-    """Operators list view"""
-    # Mock operators data
-    # TODO: Replace with actual database queries
-    operators = []
-    for i in range(1, 51):  # Generate 50 mock operators
-        operators.append({
-            'code': f'OP-{i:03d}',
-            'name': f'Gaming Operator {i}',
-            'ggr': round(15.0 + (i * 2.5), 2),
-            'stake_anomalies': (i % 5),  # 0-4 anomalies
-            'payout_anomalies': (i % 3),  # 0-2 anomalies
-        })
+    """Operators list view with real anomaly data"""
+    from .data_utils import AnomalyDataHandler
+    
+    # Initialize data handler
+    anomaly_handler = AnomalyDataHandler()
+    
+    # Get filter period from query params (default: all)
+    filter_type = request.GET.get('filter', 'all')
+    
+    # Get date range based on filter
+    if filter_type == 'custom':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
+        
+        if start_date_str and end_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        else:
+            start_date, end_date = anomaly_handler.get_filter_dates('all')
+    else:
+        start_date, end_date = anomaly_handler.get_filter_dates(filter_type)
+    
+    # Get operators summary
+    operators = anomaly_handler.get_operators_summary(start_date, end_date)
     
     # Summary statistics
     total_operators = len(operators)
     total_ggr = sum(op['ggr'] for op in operators)
-    operators_with_anomalies = len([op for op in operators if op['stake_anomalies'] > 0 or op['payout_anomalies'] > 0])
+    operators_with_anomalies = len([op for op in operators if op['total_anomalies'] > 0])
     operators_with_stake_anomalies = len([op for op in operators if op['stake_anomalies'] > 0])
     operators_with_payout_anomalies = len([op for op in operators if op['payout_anomalies'] > 0])
     avg_ggr = total_ggr / total_operators if total_operators > 0 else 0
+    
+    # Convert GGR to millions for display
+    for op in operators:
+        op['ggr_millions'] = op['ggr'] / 1_000_000
+    
+    # Determine filter period display text
+    filter_period_map = {
+        'today': 'Today',
+        'week': 'This Week',
+        'month': 'This Month',
+        'q1': 'Q1',
+        'q2': 'Q2',
+        'q3': 'Q3',
+        'q4': 'Q4',
+        'all': 'All Time',
+        'custom': 'Custom'
+    }
+    filter_period = filter_period_map.get(filter_type, 'All Time')
+    
+    if filter_type == 'custom' and start_date and end_date:
+        filter_period = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
     
     context = {
         'operators': operators,
@@ -145,6 +178,8 @@ def operators_list(request):
         'operators_with_stake_anomalies': operators_with_stake_anomalies,
         'operators_with_payout_anomalies': operators_with_payout_anomalies,
         'avg_ggr': avg_ggr,
+        'filter_period': filter_period,
+        'current_filter': filter_type,
     }
     
     return render(request, 'dashboard/operators_list.html', context)
@@ -152,115 +187,83 @@ def operators_list(request):
 
 @login_required
 def performance_detail(request, operator_code):
-    """Operator performance detail view"""
-    from datetime import datetime, timedelta
-    import random
+    """Operator performance detail view with real anomaly data"""
+    from .data_utils import AnomalyDataHandler
     
-    # Mock operator data
-    operator = {
-        'code': operator_code,
-        'name': f'Gaming Operator {operator_code.replace("OP-", "")}',
-    }
+    # Initialize data handler
+    anomaly_handler = AnomalyDataHandler()
     
-    # Mock metrics
-    total_ggr = random.uniform(50000000, 150000000)
-    total_stakes = random.uniform(200000000, 500000000)
-    total_payouts = total_stakes - total_ggr
+    # Get filter period from query params (default: all)
+    filter_type = request.GET.get('filter', 'all')
     
-    # Generate realistic transaction data over 6 months (180 days)
-    # Operators have 3-8 transactions per day on average
-    days_range = 180
-    start_date = datetime.now() - timedelta(days=days_range - 1)
-    
-    game_types = ['Sports Betting', 'Slots', 'Roulette', 'Card Games', 'Virtual Sports', 'Esports', 'Live Casino', 'Poker']
-    transactions = []
-    txn_counter = 1
-    
-    # Generate transactions ensuring at least 1 per day, with realistic volumes
-    for day in range(days_range):
-        current_date = start_date + timedelta(days=day)
-        # More transactions on weekends
-        is_weekend = current_date.weekday() >= 5
-        daily_transactions = random.randint(5, 12) if is_weekend else random.randint(3, 8)
+    # Get date range based on filter
+    if filter_type == 'custom':
+        start_date_str = request.GET.get('start_date')
+        end_date_str = request.GET.get('end_date')
         
-        for _ in range(daily_transactions):
-            # More realistic stake amounts
-            base_stake = random.uniform(300000, 3000000)
-            # Add some high-value transactions occasionally
-            if random.random() < 0.05:  # 5% chance of high-value transaction
-                base_stake *= random.uniform(2, 5)
-            
-            # RTP varies by game type
-            game_type = random.choice(game_types)
-            if game_type == 'Sports Betting':
-                rtp = random.uniform(0.92, 0.97)
-            elif game_type in ['Slots', 'Virtual Sports']:
-                rtp = random.uniform(0.88, 0.95)
-            else:
-                rtp = random.uniform(0.94, 0.98)
-            
-            payout = base_stake * rtp
-            ggr = base_stake - payout
-            
-            # More realistic anomaly detection
-            # Check for unusually high stakes or suspicious RTP
-            stake_flagged = base_stake > 8000000 or random.random() < 0.08
-            payout_flagged = rtp > 0.985 or rtp < 0.85 or random.random() < 0.06
-            
-            transactions.append({
-                'id': f'TXN-{txn_counter:05d}',
-                'game_type': game_type,
-                'stakes': base_stake,
-                'payouts': payout,
-                'ggr': ggr,
-                'date': current_date + timedelta(hours=random.randint(0, 23), minutes=random.randint(0, 59)),
-                'stake_flagged': stake_flagged,
-                'payout_flagged': payout_flagged,
-                'has_anomaly': stake_flagged or payout_flagged
-            })
-            txn_counter += 1
+        if start_date_str and end_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        else:
+            start_date, end_date = anomaly_handler.get_filter_dates('all')
+    else:
+        start_date, end_date = anomaly_handler.get_filter_dates(filter_type)
     
-    # Sort by date descending for table display
-    transactions.sort(key=lambda x: x['date'], reverse=True)
+    # Get operator details
+    operator_data = anomaly_handler.get_operator_detail(operator_code, start_date, end_date)
     
-    # Aggregate transactions by date for chart
-    from collections import defaultdict
-    daily_data = defaultdict(lambda: {'stakes': 0, 'payouts': 0, 'ggr': 0})
+    if not operator_data:
+        # Operator not found
+        from django.http import Http404
+        raise Http404(f"Operator '{operator_code}' not found")
     
-    for txn in transactions:
-        date_key = txn['date'].strftime('%d %b')
-        daily_data[date_key]['stakes'] += txn['stakes']
-        daily_data[date_key]['payouts'] += txn['payouts']
-        daily_data[date_key]['ggr'] += txn['ggr']
+    # Format date range display
+    date_range_display = f"{operator_data['date_range']['start'].strftime('%d %b %Y')} - {operator_data['date_range']['end'].strftime('%d %b %Y')}"
     
-    # Rebuild chart data from aggregated transactions
-    dates = [(start_date + timedelta(days=i)).strftime('%d %b') for i in range(days_range)]
-    ggr_data = [round(daily_data[date]['ggr'], 0) for date in dates]
-    stakes_data = [round(daily_data[date]['stakes'], 0) for date in dates]
-    payouts_data = [round(daily_data[date]['payouts'], 0) for date in dates]
+    # Prepare chart data
+    chart_dates = [datetime.strptime(d, '%Y-%m-%d').strftime('%d %b') for d in operator_data['time_series']['dates']]
     
-    # Calculate date range display
-    date_range_display = f"{start_date.strftime('%d %b %Y')} - {datetime.now().strftime('%d %b %Y')}"
+    # Determine filter period display text
+    filter_period_map = {
+        'today': 'Today',
+        'week': 'This Week',
+        'month': 'This Month',
+        'q1': 'Q1',
+        'q2': 'Q2',
+        'q3': 'Q3',
+        'q4': 'Q4',
+        'all': 'All Time',
+        'custom': 'Custom'
+    }
+    filter_period = filter_period_map.get(filter_type, 'All Time')
     
-    # Update totals from actual transaction data
-    total_ggr = sum(txn['ggr'] for txn in transactions)
-    total_stakes = sum(txn['stakes'] for txn in transactions)
-    total_payouts = sum(txn['payouts'] for txn in transactions)
+    if filter_type == 'custom' and start_date and end_date:
+        filter_period = f"{start_date.strftime('%b %d, %Y')} - {end_date.strftime('%b %d, %Y')}"
     
     context = {
-        'operator': operator,
-        'total_ggr': total_ggr,
-        'total_stakes': total_stakes,
-        'total_payouts': total_payouts,
-        'date_range_display': date_range_display,
-        'total_transactions': len(transactions),
-        'chart_data': {
-            'dates': json.dumps(dates),
-            'ggr': json.dumps(ggr_data),
-            'stakes': json.dumps(stakes_data),
-            'payouts': json.dumps(payouts_data),
+        'operator': {
+            'code': operator_data['operator'],
+            'name': operator_data['operator'],
+            'tier': operator_data['operator_tier']
         },
-        'transactions': transactions[:30],  # Show most recent 30 in table
+        'total_ggr': operator_data['total_ggr'],
+        'total_stakes': operator_data['total_stake'],
+        'total_payouts': operator_data['total_payout'],
+        'date_range_display': date_range_display,
+        'total_transactions': operator_data['record_count'],
+        'total_anomalies': operator_data['anomaly_count'],
+        'stake_anomalies': operator_data['stake_anomaly_count'],
+        'payout_anomalies': operator_data['payout_anomaly_count'],
+        'chart_data': {
+            'dates': json.dumps(chart_dates),
+            'ggr': json.dumps(operator_data['time_series']['ggr']),
+            'stakes': json.dumps(operator_data['time_series']['stakes']),
+            'payouts': json.dumps(operator_data['time_series']['payouts']),
+        },
+        'transactions': operator_data['all_records'][:100],  # Show most recent 100 in table
+        'anomaly_records': operator_data['anomaly_records'][:20],  # Show most recent 20 anomalies in sidebar
+        'filter_period': filter_period,
+        'current_filter': filter_type,
     }
     
     return render(request, 'dashboard/operator_detail.html', context)

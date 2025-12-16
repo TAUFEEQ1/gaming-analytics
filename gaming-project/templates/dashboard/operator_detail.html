@@ -139,7 +139,7 @@
             </div>
             <div>
                 <h2 class="h4 mb-0">{{ operator.name }}</h2>
-                <p class="text-muted small mb-0">{{ operator.code }}</p>
+                <p class="text-muted small mb-0">{{ operator.code }} - <span class="badge bg-secondary">{{ operator.tier }}</span></p>
             </div>
         </div>
         
@@ -165,25 +165,22 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <div class="d-flex align-items-center">
-                        <label class="me-2 mb-0 text-muted small fw-bold">Date Range:</label>
-                        <select class="form-select form-select-sm w-auto me-2" id="dateRangeSelect">
-                            <option value="today">Today</option>
-                            <option value="week" selected>This Week</option>
-                            <option value="month">This Month</option>
-                            <option value="quarter">This Quarter</option>
-                            <option value="year">This Year</option>
-                            <option value="custom">Custom Range</option>
+                        <label class="me-2 mb-0 text-muted small fw-bold">Period:</label>
+                        <select class="form-select form-select-sm w-auto me-2" id="filterSelect" onchange="applyFilter()">
+                            <option value="all" {% if current_filter == 'all' %}selected{% endif %}>All Time</option>
+                            <option value="today" {% if current_filter == 'today' %}selected{% endif %}>Today</option>
+                            <option value="week" {% if current_filter == 'week' %}selected{% endif %}>This Week</option>
+                            <option value="month" {% if current_filter == 'month' %}selected{% endif %}>This Month</option>
+                            <option value="q1" {% if current_filter == 'q1' %}selected{% endif %}>Q1</option>
+                            <option value="q2" {% if current_filter == 'q2' %}selected{% endif %}>Q2</option>
+                            <option value="q3" {% if current_filter == 'q3' %}selected{% endif %}>Q3</option>
+                            <option value="q4" {% if current_filter == 'q4' %}selected{% endif %}>Q4</option>
                         </select>
-                        <span class="text-muted small">{{ date_range_display }}</span>
+                        <span class="text-muted small">{{ filter_period }}</span>
                     </div>
                 </div>
                 <div class="col-md-4 text-end">
-                    <button class="btn btn-sm btn-outline-primary" onclick="location.reload()">
-                        <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
-                        </svg>
-                        Refresh
-                    </button>
+                    <span class="badge bg-warning">{{ total_anomalies }} Anomalies</span>
                 </div>
             </div>
         </div>
@@ -272,15 +269,16 @@
                                     <th class="border-0">Date</th>
                                     <th class="border-0">Stakes (UGX)</th>
                                     <th class="border-0">Payouts (UGX)</th>
-                                    <th class="border-0">Action</th>
+                                    <th class="border-0">GGR (UGX)</th>
+                                    <th class="border-0">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for transaction in transactions %}
                                 <tr data-anomalous="{{ transaction.has_anomaly|yesno:'true,false' }}">
-                                    <td class="text-muted small">{{ transaction.date|date:"d/m/Y H:i" }}</td>
+                                    <td class="text-muted small">{{ transaction.date|date:"d/m/Y" }}</td>
                                     <td class="{% if transaction.stake_flagged %}table-cell-flagged{% endif %}">
-                                        {{ transaction.stakes|floatformat:0 }}
+                                        {{ transaction.total_stake|floatformat:0 }}
                                         {% if transaction.stake_flagged %}
                                             <svg class="icon icon-xs text-warning ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -288,21 +286,24 @@
                                         {% endif %}
                                     </td>
                                     <td class="{% if transaction.payout_flagged %}table-cell-flagged{% endif %}">
-                                        {{ transaction.payouts|floatformat:0 }}
+                                        {{ transaction.total_payout|floatformat:0 }}
                                         {% if transaction.payout_flagged %}
                                             <svg class="icon icon-xs text-danger ms-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                             </svg>
                                         {% endif %}
                                     </td>
+                                    <td>{{ transaction.ggr|floatformat:0 }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewTransactionDetail('{{ transaction.id }}')">
-                                            <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            View
-                                        </button>
+                                        {% if transaction.anomaly_type == 'Both' %}
+                                            <span class="badge bg-danger">Both</span>
+                                        {% elif transaction.anomaly_type == 'Stake Only' %}
+                                            <span class="badge bg-warning text-dark">Stake</span>
+                                        {% elif transaction.anomaly_type == 'Payout Only' %}
+                                            <span class="badge bg-warning text-dark">Payout</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Normal</span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -325,35 +326,46 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        {% for transaction in transactions %}
-                            {% if transaction.has_anomaly %}
+                        {% for record in anomaly_records %}
                             <div class="list-group-item border-0 py-3">
                                 <div class="d-flex align-items-start">
                                     <div class="flex-shrink-0">
-                                        {% if transaction.stake_flagged %}
-                                        <span class="badge bg-warning text-dark">High Stake</span>
-                                        {% elif transaction.payout_flagged %}
-                                        <span class="badge bg-danger">High Payout</span>
+                                        {% if record.anomaly_type == 'Both' %}
+                                        <span class="badge bg-danger">Both</span>
+                                        {% elif record.anomaly_type == 'Stake Only' %}
+                                        <span class="badge bg-warning text-dark">Stake</span>
+                                        {% elif record.anomaly_type == 'Payout Only' %}
+                                        <span class="badge bg-warning text-dark">Payout</span>
                                         {% endif %}
                                     </div>
                                     <div class="flex-grow-1 ms-3">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
-                                                <p class="mb-1 fw-bold small">{{ transaction.game_type }}</p>
+                                                <p class="mb-1 fw-bold small">{{ record.date|date:"d M Y" }}</p>
                                                 <p class="mb-0 text-muted" style="font-size: 0.75rem;">
-                                                    {% if transaction.stake_flagged %}
-                                                    Stake: UGX {{ transaction.stakes|floatformat:0 }}
-                                                    {% elif transaction.payout_flagged %}
-                                                    Payout: UGX {{ transaction.payouts|floatformat:0 }}
+                                                    {% if record.stake_flagged %}
+                                                    Stake: UGX {{ record.total_stake|floatformat:0 }}
+                                                    {% if record.stake_deviation_pct %}
+                                                    ({{ record.stake_deviation_pct|floatformat:1 }}%)
+                                                    {% endif %}
+                                                    <br>
+                                                    {% endif %}
+                                                    {% if record.payout_flagged %}
+                                                    Payout: UGX {{ record.total_payout|floatformat:0 }}
+                                                    {% if record.payout_deviation_pct %}
+                                                    ({{ record.payout_deviation_pct|floatformat:1 }}%)
+                                                    {% endif %}
                                                     {% endif %}
                                                 </p>
                                             </div>
-                                            <span class="text-muted" style="font-size: 0.7rem;">{{ transaction.date|date:"d/m H:i" }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            {% endif %}
+                        {% empty %}
+                            <div class="list-group-item border-0 py-3 text-center text-muted">
+                                No anomalies detected
+                            </div>
                         {% endfor %}
                     </div>
                 </div>
@@ -559,6 +571,13 @@
     function viewTransactionDetail(id) {
         // Implement transaction detail view
         alert('View transaction detail: ' + id);
+    }
+
+    function applyFilter() {
+        const filter = document.getElementById('filterSelect').value;
+        const url = new URL(window.location.href);
+        url.searchParams.set('filter', filter);
+        window.location.href = url.toString();
     }
 </script>
 {% endblock %}
