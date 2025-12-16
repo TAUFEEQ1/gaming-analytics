@@ -358,15 +358,39 @@ class AnomalyDataHandler:
         # Get all daily records for table
         all_records = []
         for _, row in operator_df.iterrows():
+            anomaly_type = str(row.get('anomaly_type', 'Normal'))
+            has_anomaly = anomaly_type != 'Normal'
+            
+            # Calculate RTP
+            rtp = (float(row['total_payout']) / float(row['total_stake']) * 100) if float(row['total_stake']) > 0 else 0
+            
+            # Get game type from dominant_game_category
+            game_type = str(row.get('dominant_game_category', 'N/A'))
+            if game_type.startswith('RRI_'):
+                game_type = game_type[4:].replace('_', ' ').title()
+            
             all_records.append({
                 'date': row['date'],
                 'total_stake': float(row['total_stake']),
                 'total_payout': float(row['total_payout']),
                 'ggr': float(row['ggr']),
-                'stake_flagged': row['is_anomaly_stake'] == 1,
-                'payout_flagged': row['is_anomaly_payout'] == 1,
-                'has_anomaly': row['is_anomaly_combined'] == 1,
-                'anomaly_type': row['anomaly_type'] if row['is_anomaly_combined'] == 1 else 'Normal'
+                'rtp': rtp,
+                'stake_flagged': bool(row.get('is_anomaly_stake', 0)),
+                'payout_flagged': bool(row.get('is_anomaly_payout', 0)),
+                'has_anomaly': has_anomaly,
+                'anomaly_type': anomaly_type,
+                'game_type': game_type,
+                'stake_predicted': float(row.get('stake_predicted', 0)),
+                'stake_deviation': float(row.get('stake_deviation', 0)),
+                'stake_deviation_pct': float(row.get('stake_deviation_pct', 0)),
+                'anomaly_score_stake': float(row.get('anomaly_score_stake', 0)),
+                'payout_predicted': float(row.get('payout_predicted', 0)),
+                'payout_deviation': float(row.get('payout_deviation', 0)),
+                'payout_deviation_pct': float(row.get('payout_deviation_pct', 0)),
+                'anomaly_score_payout': float(row.get('anomaly_score_payout', 0)),
+                'dominant_stake_category': str(row.get('dominant_stake_category', 'N/A')),
+                'dominant_payout_category': str(row.get('dominant_payout_category', 'N/A')),
+                'top_games': str(row.get('top_games', 'N/A'))
             })
         
         # Sort all records by date descending
