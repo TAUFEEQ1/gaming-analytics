@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block title %}Excluded Operators - Regulatory Triage{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<style>
+    #excludedOperatorsTable tbody tr {
+        border-bottom: 1px solid #d1d5db !important;
+    }
+    #excludedOperatorsTable thead th {
+        border-bottom: 1px solid #d1d5db !important;
+        padding: 12px 8px !important;
+    }
+    #excludedOperatorsTable tbody td {
+        padding: 12px 8px !important;
+    }
+    
+    .dataTables_wrapper {
+        font-family: inherit;
+    }
+    
+    .dataTables_filter input {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        margin-left: 0.5rem;
+    }
+    
+    .dataTables_filter input:focus {
+        border-color: #138796;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    .dataTables_length select {
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        padding: 0.375rem 2rem 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        margin: 0 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <div class="d-flex justify-content-between w-100 flex-wrap">
+        <div class="mb-3 mb-lg-0">
+            <h1 class="h4">Excluded Operators</h1>
+            <p class="mb-0">Operators excluded from anomaly detection - zero stake days and missing operators.</p>
+        </div>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Export Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-12 col-lg-9 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="excludedOperatorsTable" class="table table-centered table-nowrap mb-0 rounded">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="border-0">Operator</th>
+                                <th class="border-0">Records</th>
+                                <th class="border-0">Zero Stake Days</th>
+                                <th class="border-0">Flags</th>
+                                <th class="border-0">Severity</th>
+                                <th class="border-0">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for operator in operators %}
+                            <tr>
+                                <td class="fw-bold">
+                                    <span class="d-inline-flex align-items-center">
+                                        <svg class="icon icon-xs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        {{ operator.operator }}
+                                    </span>
+                                    {% if operator.is_missing_operator %}
+                                    <span class="badge bg-secondary badge-sm ms-1">Missing</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ operator.record_count }}
+                                    {% if operator.has_main_activity %}
+                                    <span class="text-muted small">({{ operator.active_days }} days active)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ operator.zero_stake_days }}
+                                    {% if operator.has_main_activity %}
+                                    <span class="text-success small">({{ operator.active_days }} non-zero)</span>
+                                    {% elif operator.zero_stake_days == operator.record_count %}
+                                    <span class="text-danger fw-bold">(All)</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for flag in operator.flags %}
+                                        <span class="badge bg-secondary badge-sm">{{ flag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if operator.severity == 'danger' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                    {% elif operator.severity == 'warning' %}
+                                    <span class="badge bg-warning text-dark">Warning</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Info</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'excluded_operator_detail' operator.operator %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center">
+                                        <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Analyze
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Stats -->
+    <div class="col-12 col-lg-3 mb-4">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Summary</h6>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small">Total Excluded</span>
+                        <span class="fw-bold">{{ total_excluded }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small">Missing Operators</span>
+                        <span class="badge bg-secondary">{{ missing_operators }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-0">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small">Fully Inactive</span>
+                        <span class="badge bg-danger">{{ fully_inactive }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">By Severity</h6>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted">Critical</span>
+                        <span class="badge bg-danger">{{ danger_count }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-danger" role="progressbar" 
+                             style="width: {% widthratio danger_count total_excluded 100 %}%">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted">Warning</span>
+                        <span class="badge bg-warning text-dark">{{ warning_count }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             style="width: {% widthratio warning_count total_excluded 100 %}%">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-0">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-muted">Info</span>
+                        <span class="badge bg-info">{{ info_count }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             style="width: {% widthratio info_count total_excluded 100 %}%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Info</h6>
+                <p class="small text-muted mb-2">
+                    <strong>Zero Stake Days:</strong> Days with no betting activity (inactive).
+                </p>
+                <p class="small text-muted mb-2">
+                    <strong>Missing Operators:</strong> Not included in anomaly detection models due to insufficient data or no tier assignment.
+                </p>
+                <p class="small text-muted mb-0">
+                    <strong>Rule-Based Flags:</strong> Automated analysis identifies data quality issues and operational concerns.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#excludedOperatorsTable').DataTable({
+            responsive: true,
+            pageLength: 15,
+            order: [[1, 'desc']], // Sort by record count descending
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search excluded operators...",
+                lengthMenu: "_MENU_ records per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ excluded operators",
+                infoEmpty: "No excluded operators",
+                infoFiltered: "(filtered from _MAX_ total)"
+            },
+            columnDefs: [
+                { orderable: false, targets: 5 } // Disable sorting on action column
+            ]
+        });
+    });
+</script>
+{% endblock %}

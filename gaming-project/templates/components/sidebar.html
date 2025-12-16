@@ -45,6 +45,15 @@
                 </a>
             </li>
             
+            <li class="nav-item {% if request.resolver_match.url_name == 'excluded_operators_list' or request.resolver_match.url_name == 'excluded_operator_detail' %}active{% endif %}">
+                <a href="{% url 'excluded_operators_list' %}" class="nav-link d-flex align-items-center">
+                    <span class="sidebar-icon">
+                        <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg>
+                    </span>
+                    <span class="sidebar-text">Excluded Operators</span>
+                </a>
+            </li>
+            
             <li class="nav-item">
                 <a href="#" class="nav-link d-flex align-items-center">
                     <span class="sidebar-icon">

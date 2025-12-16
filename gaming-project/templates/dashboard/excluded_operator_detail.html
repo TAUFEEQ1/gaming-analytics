@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block title %}{{ operator.name }} - Excluded Operator Analysis{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<style>
+    .metric-card {
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .flag-card {
+        border-left: 4px solid;
+    }
+    .flag-card.flag-danger {
+        border-left-color: #dc3545;
+    }
+    .flag-card.flag-warning {
+        border-left-color: #ffc107;
+    }
+    .flag-card.flag-info {
+        border-left-color: #0dcaf0;
+    }
+    .flag-card.flag-success {
+        border-left-color: #198754;
+    }
+    #recordsTable tbody tr.zero-stake {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'excluded_operators_list' %}">Excluded Operators</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ operator.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <div class="avatar rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                <svg class="icon icon-sm" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div>
+                <h2 class="h4 mb-0">{{ operator.name }}</h2>
+                <p class="text-muted small mb-0">
+                    {{ operator.code }} - <span class="badge bg-secondary">Excluded</span>
+                    {% if is_missing_operator %}
+                    <span class="badge bg-warning text-dark">Missing from Detection</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" onclick="window.print()">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd"></path>
+                </svg>
+                Print
+            </button>
+            <button class="btn btn-sm btn-primary">
+                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Export Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- Metrics Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Total Records</h6>
+                    <h3 class="fw-bold mb-0">{{ record_count }}</h3>
+                    <small class="text-muted">{{ date_range_display }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Zero Stake Days</h6>
+                    <h3 class="fw-bold mb-0 text-danger">{{ zero_stake_days }}</h3>
+                    <small class="text-muted">{{ analysis.metrics.inactive_ratio }}% inactive</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Active Days</h6>
+                    <h3 class="fw-bold mb-0 text-success">{{ analysis.metrics.active_days }}</h3>
+                    <small class="text-muted">With betting activity</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2 text-uppercase" style="font-size: 0.75rem;">Zero Payout Days</h6>
+                    <h3 class="fw-bold mb-0 text-warning">{{ zero_payout_days }}</h3>
+                    <small class="text-muted">{{ analysis.metrics.zero_payout_ratio }}% of records</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rule-Based Analysis Section -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">
+                        <svg class="icon icon-sm me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        Rule-Based Analysis
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Flags -->
+                    <div class="row g-3 mb-4">
+                        {% for flag in analysis.flags %}
+                        <div class="col-12 col-md-6">
+                            <div class="card flag-card flag-{{ flag.type }} h-100 mb-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start">
+                                        <div class="flex-shrink-0 me-3">
+                                            {% if flag.type == 'danger' %}
+                                            <svg class="icon icon-md text-danger" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            {% elif flag.type == 'warning' %}
+                                            <svg class="icon icon-md text-warning" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            {% elif flag.type == 'success' %}
+                                            <svg class="icon icon-md text-success" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            {% else %}
+                                            <svg class="icon icon-md text-info" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="fw-bold mb-2">{{ flag.title }}</h6>
+                                            <p class="mb-1 small">{{ flag.description }}</p>
+                                            <p class="mb-0 small text-muted"><em>{{ flag.reason }}</em></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="alert alert-primary mb-0">
+                        <h6 class="alert-heading fw-bold">
+                            <svg class="icon icon-sm me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                            </svg>
+                            Recommendations
+                        </h6>
+                        <ul class="mb-0">
+                            {% for recommendation in analysis.recommendations %}
+                            <li>{{ recommendation }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Chart Area -->
+        <div class="col-12 col-lg-9 mb-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">Activity Over Time</h6>
+                    <p class="text-muted small mb-0">{{ date_range_display }}</p>
+                </div>
+                <div class="card-body">
+                    {% if has_activity %}
+                        {% if activity_context %}
+                            <!-- Show headline activity stats -->
+                            <div class="alert alert-info mb-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ activity_context.non_zero_days }}</strong> days with activity, 
+                                    <strong>{{ activity_context.zero_days }}</strong> days with zero stakes
+                                    <span class="text-muted">({{ activity_context.zero_percentage|floatformat:1 }}% inactive)</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success">{{ activity_context.transitions|length }} transitions</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div id="activityChart" style="height: 300px;"></div>
+                    {% else %}
+                        <!-- All zero - show text instead of chart -->
+                        <div class="alert alert-warning text-center py-5">
+                            <svg class="icon icon-xl mb-3 text-warning" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <h5 class="fw-bold">No Activity Detected</h5>
+                            <p class="mb-1">All {{ record_count }} days in this period have <strong>zero stakes</strong>.</p>
+                            <p class="text-muted mb-0">
+                                Date Range: {{ date_range_display }}<br>
+                                This operator has no betting activity recorded during this period.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Daily Records Table -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">Daily Records</h6>
+                    <p class="text-muted small mb-0">Zero stake days highlighted</p>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover align-middle mb-0" id="recordsTable">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="border-0">Date</th>
+                                <th class="border-0">Stakes (UGX)</th>
+                                <th class="border-0">Payouts (UGX)</th>
+                                <th class="border-0">GGR (UGX)</th>
+                                <th class="border-0">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in daily_records %}
+                            <tr class="{% if record.is_zero_stake %}zero-stake{% endif %}">
+                                <td class="text-muted small">{{ record.date|date:"d/m/Y" }}</td>
+                                <td>
+                                    {{ record.total_stake|floatformat:0 }}
+                                    {% if record.is_zero_stake %}
+                                    <span class="badge bg-secondary badge-sm">Zero</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ record.total_payout|floatformat:0 }}
+                                    {% if record.is_zero_payout %}
+                                    <span class="badge bg-secondary badge-sm">Zero</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.ggr|floatformat:0 }}</td>
+                                <td>
+                                    {% if record.is_zero_stake %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Sidebar -->
+        <div class="col-12 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3 text-uppercase" style="font-size: 0.75rem;">Financial Summary</h6>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Total Stakes</small>
+                        <h5 class="fw-bold mb-0">UGX {{ total_stakes|humanize_number }}</h5>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Total Payouts</small>
+                        <h5 class="fw-bold mb-0">UGX {{ total_payouts|humanize_number }}</h5>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Total GGR</small>
+                        <h5 class="fw-bold mb-0 text-{% if total_ggr > 0 %}success{% else %}danger{% endif %}">
+                            UGX {{ total_ggr|humanize_number }}
+                        </h5>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Avg Stake/Day</small>
+                        <span class="fw-bold">UGX {{ avg_stake|floatformat:0 }}</span>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Avg Payout/Day</small>
+                        <span class="fw-bold">UGX {{ avg_payout|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3 text-uppercase" style="font-size: 0.75rem;">Key Metrics</h6>
+                    
+                    {% if analysis.metrics.days_since_last_record %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Last Data</small>
+                        <span class="fw-bold">{{ analysis.metrics.days_since_last_record }} days ago</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Inactive Ratio</small>
+                        <div class="progress mt-2" style="height: 10px;">
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: {{ analysis.metrics.inactive_ratio }}%"
+                                 aria-valuenow="{{ analysis.metrics.inactive_ratio }}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ analysis.metrics.inactive_ratio }}%</small>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <small class="text-muted d-block">Zero Payout Ratio</small>
+                        <div class="progress mt-2" style="height: 10px;">
+                            <div class="progress-bar bg-warning" role="progressbar" 
+                                 style="width: {{ analysis.metrics.zero_payout_ratio }}%"
+                                 aria-valuenow="{{ analysis.metrics.zero_payout_ratio }}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <small class="text-muted">{{ analysis.metrics.zero_payout_ratio }}%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+<script>
+    {% if has_activity %}
+    // Parse chart data
+    const chartData = {
+        stakes: {{ chart_data.stakes|safe }},
+        dates: {{ chart_data.dates|safe }},
+        isExcluded: {{ chart_data.is_excluded|safe }}
+    };
+
+    // Find max stake for normalization
+    const maxStake = Math.max(...chartData.stakes.filter(s => s > 0));
+    
+    // Separate data into included and excluded series with normalized values (0-100%)
+    const includedData = [];
+    const excludedData = [];
+    
+    chartData.stakes.forEach((stake, index) => {
+        const normalizedValue = maxStake > 0 ? (stake / maxStake) * 100 : 0;
+        const dataPoint = {
+            x: chartData.dates[index],
+            y: normalizedValue,
+            originalValue: stake
+        };
+        
+        if (chartData.isExcluded[index]) {
+            excludedData.push(dataPoint);
+            includedData.push({x: chartData.dates[index], y: null}); // Gap in included series
+        } else {
+            includedData.push(dataPoint);
+            excludedData.push({x: chartData.dates[index], y: null}); // Gap in excluded series
+        }
+    });
+
+    // Activity Chart with context (using stakes as activity proxy)
+    const activityOptions = {
+        series: [{
+            name: 'Active Stakes',
+            data: includedData,
+            color: '#10b981'
+        }, {
+            name: 'Zero/Excluded Stakes',
+            data: excludedData,
+            color: '#ef4444'
+        }],
+        chart: {
+            type: 'area',
+            height: 300,
+            fontFamily: 'inherit',
+            toolbar: {
+                show: true
+            },
+            zoom: {
+                enabled: true
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: [3, 2],
+            dashArray: [0, 5]
+        },
+        fill: {
+            type: ['gradient', 'gradient'],
+            gradient: {
+                shade: 'light',
+                type: 'vertical',
+                shadeIntensity: 0.3,
+                gradientToColors: ['#d1fae5', '#fee2e2'],
+                inverseColors: false,
+                opacityFrom: 0.7,
+                opacityTo: 0.2,
+                stops: [0, 100]
+            }
+        },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                format: 'MMM dd',
+                rotate: -45,
+                hideOverlappingLabels: true,
+                style: {
+                    fontSize: '11px'
+                }
+            }
+        },
+        yaxis: {
+            title: {
+                text: 'Relative Activity Level'
+            },
+            labels: {
+                formatter: function(val) {
+                    return val.toFixed(0) + '%';
+                }
+            },
+            min: 0,
+            max: 100
+        },
+        tooltip: {
+            theme: 'light',
+            shared: false,
+            intersect: false,
+            x: {
+                format: 'MMM dd, yyyy'
+            },
+            y: {
+                formatter: function(val, opts) {
+                    if (val === null) return '';
+                    const originalValue = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex]?.originalValue;
+                    if (originalValue !== undefined) {
+                        const formatted = originalValue >= 1000000000 ? (originalValue / 1000000000).toFixed(2) + 'B' :
+                                        originalValue >= 1000000 ? (originalValue / 1000000).toFixed(2) + 'M' :
+                                        originalValue >= 1000 ? (originalValue / 1000).toFixed(2) + 'K' :
+                                        originalValue.toFixed(0);
+                        return val.toFixed(1) + '% (UGX ' + formatted + ')';
+                    }
+                    return val.toFixed(1) + '%';
+                }
+            }
+        },
+        markers: {
+            size: 0,
+            hover: {
+                size: 5
+            }
+        },
+        legend: {
+            show: true,
+            position: 'top',
+            horizontalAlign: 'left'
+        },
+        annotations: {
+            yaxis: [{
+                y: 0,
+                borderColor: '#6c757d',
+                strokeDashArray: 2,
+                label: {
+                    borderColor: '#6c757d',
+                    style: {
+                        color: '#fff',
+                        background: '#6c757d',
+                        fontSize: '10px'
+                    },
+                    text: 'Zero Activity'
+                }
+            }]
+        }
+    };
+
+    const activityChart = new ApexCharts(document.querySelector("#activityChart"), activityOptions);
+    activityChart.render();
+    {% endif %}
+
+    // Initialize DataTables
+    $(document).ready(function() {
+        $('#recordsTable').DataTable({
+            pageLength: 20,
+            order: [[0, 'desc']], // Sort by date descending
+            responsive: true,
+            language: {
+                search: "Search records:",
+                lengthMenu: "Show _MENU_ records per page",
+                info: "Showing _START_ to _END_ of _TOTAL_ records",
+                infoEmpty: "No records available"
+            }
+        });
+    });
+</script>
+{% endblock %}

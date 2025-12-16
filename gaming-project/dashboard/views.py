@@ -270,6 +270,93 @@ def performance_detail(request, operator_code):
 
 
 @login_required
+def excluded_operators_list(request):
+    """Excluded operators list view with rule-based flagging"""
+    from .data_utils import ExcludedDataHandler
+    
+    # Initialize handler
+    excluded_handler = ExcludedDataHandler()
+    
+    # Get excluded operators summary with flags
+    operators = excluded_handler.get_excluded_operators_summary()
+    
+    # Summary statistics
+    total_excluded = len(operators)
+    missing_operators = len([op for op in operators if op['is_missing_operator']])
+    fully_inactive = len([op for op in operators if op['zero_stake_days'] == op['record_count']])
+    
+    # Count by severity
+    danger_count = len([op for op in operators if op['severity'] == 'danger'])
+    warning_count = len([op for op in operators if op['severity'] == 'warning'])
+    info_count = len([op for op in operators if op['severity'] == 'info'])
+    
+    context = {
+        'operators': operators,
+        'total_excluded': total_excluded,
+        'missing_operators': missing_operators,
+        'fully_inactive': fully_inactive,
+        'danger_count': danger_count,
+        'warning_count': warning_count,
+        'info_count': info_count,
+    }
+    
+    return render(request, 'dashboard/excluded_operators_list.html', context)
+
+
+@login_required
+def excluded_operator_detail(request, operator_code):
+    """Excluded operator detail view with rule-based analysis"""
+    from .data_utils import ExcludedDataHandler
+    
+    # Initialize handler
+    excluded_handler = ExcludedDataHandler()
+    
+    # Get operator details
+    operator_data = excluded_handler.get_excluded_operator_detail(operator_code)
+    
+    if not operator_data:
+        # Operator not found
+        from django.http import Http404
+        raise Http404(f"Excluded operator '{operator_code}' not found")
+    
+    # Format date range display
+    date_range_display = f"{operator_data['date_range']['start'].strftime('%d %b %Y')} - {operator_data['date_range']['end'].strftime('%d %b %Y')}"
+    
+    # Prepare chart data
+    chart_dates = operator_data['time_series']['dates']  # Keep as ISO format for ApexCharts
+    
+    context = {
+        'operator': {
+            'code': operator_data['operator'],
+            'name': operator_data['operator'],
+        },
+        'total_ggr': operator_data['total_ggr'],
+        'total_stakes': operator_data['total_stake'],
+        'total_payouts': operator_data['total_payout'],
+        'record_count': operator_data['record_count'],
+        'zero_stake_days': operator_data['zero_stake_days'],
+        'zero_payout_days': operator_data['zero_payout_days'],
+        'is_missing_operator': operator_data['is_missing_operator'],
+        'avg_stake': operator_data['avg_stake'],
+        'avg_payout': operator_data['avg_payout'],
+        'date_range_display': date_range_display,
+        'has_activity': operator_data.get('has_activity', False),
+        'activity_context': operator_data.get('activity_context'),
+        'chart_data': {
+            'dates': json.dumps(chart_dates),
+            'ggr': json.dumps(operator_data['time_series']['ggr']),
+            'stakes': json.dumps(operator_data['time_series']['stakes']),
+            'payouts': json.dumps(operator_data['time_series']['payouts']),
+            'is_excluded': json.dumps(operator_data['time_series'].get('is_excluded', [True] * len(chart_dates)))
+        },
+        'daily_records': operator_data['daily_records'][:100],  # Show most recent 100
+        'analysis': operator_data['analysis'],
+    }
+    
+    return render(request, 'dashboard/excluded_operator_detail.html', context)
+
+
+@login_required
 def anomalies_list(request):
     """Anomalies list view with filtering by operator"""
     import random
