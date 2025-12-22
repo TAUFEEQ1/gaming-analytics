@@ -36,6 +36,19 @@ def abs_value(value):
     Return absolute value of a number
     """
     try:
+        import math
+        return abs(float(value))
+    except (ValueError, TypeError):
+        return value
+
+
+@register.filter(name='abs')
+def absolute_value(value):
+    """
+    Return absolute value of a number (template filter named 'abs')
+    """
+    try:
+        import math
         return abs(float(value))
     except (ValueError, TypeError):
         return value
