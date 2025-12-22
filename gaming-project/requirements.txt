@@ -5,3 +5,6 @@ Pillow==11.1.0
 mysqlclient==2.2.6
 python-decouple==3.8
 django-volt-dashboard
+pandas==2.2.0
+openpyxl==3.1.2
+pyarrow==15.0.0

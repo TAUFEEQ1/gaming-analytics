@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ operator_name }} - Tax Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-building text-primary me-2"></i>{{ operator_name }}</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'tax_variance_dashboard' %}">Tax Variance</a></li>
+                            <li class="breadcrumb-item active">{{ operator_name }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a href="{% url 'tax_variance_dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-primary mb-2">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <h3 class="text-primary">{{ operator_summary.total_variance_records }}</h3>
+                    <p class="text-muted mb-0">Variance Records</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-money-bill fa-2x"></i>
+                    </div>
+                    <h3 class="text-success">{{ operator_summary.total_lgrb_amount|floatformat:0 }}</h3>
+                    <p class="text-muted mb-0">Total LGRB Amount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-info mb-2">
+                        <i class="fas fa-university fa-2x"></i>
+                    </div>
+                    <h3 class="text-info">{{ operator_summary.total_ura_amount|floatformat:0 }}</h3>
+                    <p class="text-muted mb-0">Total URA Amount</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-{% if operator_summary.total_variance > 0 %}success{% elif operator_summary.total_variance < 0 %}danger{% else %}secondary{% endif %} mb-2">
+                        <i class="fas fa-balance-scale fa-2x"></i>
+                    </div>
+                    <h3 class="text-{% if operator_summary.total_variance > 0 %}success{% elif operator_summary.total_variance < 0 %}danger{% else %}secondary{% endif %}">
+                        {{ operator_summary.total_variance|floatformat:0 }}
+                    </h3>
+                    <p class="text-muted mb-0">Total Variance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variance Details -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Variance History</h5>
+                </div>
+                <div class="card-body">
+                    {% if variance_data %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Week Ending</th>
+                                        <th>Period</th>
+                                        <th class="text-end">LGRB Gaming Tax</th>
+                                        <th class="text-end">URA Gaming Tax</th>
+                                        <th class="text-end">Variance</th>
+                                        <th class="text-end">Variance %</th>
+                                        <th class="text-center">Flags</th>
+                                        <th class="text-center">Records</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for variance in variance_data %}
+                                    <tr>
+                                        <td><strong>{{ variance.wednesday_date|date:"M d, Y" }}</strong></td>
+                                        <td class="small text-muted">
+                                            {{ variance.period_start|date:"M d" }} - {{ variance.period_end|date:"M d" }}
+                                        </td>
+                                        <td class="text-end">{{ variance.lgrb_gaming_tax|floatformat:0 }}</td>
+                                        <td class="text-end">{{ variance.ura_gaming_tax|floatformat:0 }}</td>
+                                        <td class="text-end text-{% if variance.absolute_variance > 0 %}success{% elif variance.absolute_variance < 0 %}danger{% else %}muted{% endif %}">
+                                            {{ variance.absolute_variance|floatformat:0 }}
+                                        </td>
+                                        <td class="text-end text-{% if variance.percentage_variance %}{% if variance.percentage_variance > 10 %}danger{% elif variance.percentage_variance < -10 %}danger{% else %}muted{% endif %}{% else %}muted{% endif %}">
+                                            {% if variance.percentage_variance %}{{ variance.percentage_variance|floatformat:2 }}%{% else %}-{% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if variance.is_possible_late_payment %}
+                                                <span class="badge bg-warning">Late Payment</span>
+                                            {% endif %}
+                                            {% if variance.is_early_payment %}
+                                                <span class="badge bg-info">Early Payment</span>
+                                            {% endif %}
+                                            {% if variance.percentage_variance and variance.percentage_variance|abs > 10 %}
+                                                <span class="badge bg-danger">High Variance</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <small class="text-muted">
+                                                LGRB: {{ variance.lgrb_submission_count }}<br>
+                                                URA: {{ variance.ura_payment_count }}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-bar fa-3x text-muted opacity-25 mb-3"></i>
+                            <p class="text-muted">No variance data available for this operator.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Source Data -->
+    <div class="row">
+        <!-- LGRB Submissions -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-gamepad me-2"></i>LGRB Submissions</h5>
+                </div>
+                <div class="card-body">
+                    {% if lgrb_data %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th class="text-end">Gaming Tax</th>
+                                        <th class="text-end">Row #</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lgrb in lgrb_data %}
+                                    <tr>
+                                        <td>{{ lgrb.submission_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">{{ lgrb.operator_category }}</span>
+                                        </td>
+                                        <td class="text-end">{{ lgrb.gaming_tax|floatformat:0 }}</td>
+                                        <td class="text-end">
+                                            <small class="text-muted">{{ lgrb.excel_row_number }}</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if operator_summary.lgrb_submission_count > 20 %}
+                            <small class="text-muted">
+                                Showing recent 20 of {{ operator_summary.lgrb_submission_count }} total submissions.
+                            </small>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-gamepad fa-2x text-muted opacity-25 mb-2"></i>
+                            <p class="text-muted mb-0">No LGRB submissions found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- URA Payments -->
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-university me-2"></i>URA Payments</h5>
+                </div>
+                <div class="card-body">
+                    {% if ura_data %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Bank</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">Row #</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ura in ura_data %}
+                                    <tr>
+                                        <td>{{ ura.bank_realization_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            <small class="text-muted">{{ ura.bank|truncatechars:15 }}</small>
+                                        </td>
+                                        <td class="text-end">{{ ura.amount_paid|floatformat:0 }}</td>
+                                        <td class="text-end">
+                                            <small class="text-muted">{{ ura.excel_row_number }}</small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if operator_summary.ura_payment_count > 20 %}
+                            <small class="text-muted">
+                                Showing recent 20 of {{ operator_summary.ura_payment_count }} total payments.
+                            </small>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-university fa-2x text-muted opacity-25 mb-2"></i>
+                            <p class="text-muted mb-0">No URA payments found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    {% if operator_summary.late_payment_flags > 0 or operator_summary.early_payment_flags > 0 %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-start border-warning border-5">
+                <div class="card-body">
+                    <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Payment Timing Issues</h6>
+                    {% if operator_summary.late_payment_flags > 0 %}
+                        <p class="mb-1"><strong>{{ operator_summary.late_payment_flags }}</strong> possible late payment(s) detected (URA payments without corresponding LGRB submissions)</p>
+                    {% endif %}
+                    {% if operator_summary.early_payment_flags > 0 %}
+                        <p class="mb-0"><strong>{{ operator_summary.early_payment_flags }}</strong> early payment(s) detected (LGRB submissions without corresponding URA payments)</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

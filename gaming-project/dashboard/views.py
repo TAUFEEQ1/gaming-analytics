@@ -1,9 +1,15 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from datetime import datetime, timedelta
+from django.contrib import messages
+from django.http import JsonResponse
+from django.utils import timezone
+from datetime import datetime, timedelta, date
 import json
+from decimal import Decimal
 from .data_utils import GGRDataHandler
+from .models import ExcelUpload, LGRBSubmission, URAPayment, WeeklyGamingTaxVariance, MonthlyWHTVariance, AuditLog
+from .tax_utils import ExcelProcessor, TaxVarianceCalculator
 
 
 def home(request):
@@ -456,3 +462,279 @@ def anomalies_list(request):
     }
     
     return render(request, 'dashboard/anomalies_list.html', context)
+
+
+# Tax Variance Analysis Views
+
+@login_required
+def tax_variance_upload(request):
+    """Upload Excel files for tax variance analysis"""
+    if request.method == 'POST' and request.FILES.get('file'):
+        uploaded_file = request.FILES['file']
+        file_type = request.POST.get('file_type')
+        
+        # Validate file type
+        if not uploaded_file.name.lower().endswith('.xlsx'):
+            messages.error(request, 'Only Excel (.xlsx) files are allowed.')
+            return redirect('tax_variance_upload')
+        
+        # Validate file type selection
+        if file_type not in ['URA', 'LGRB']:
+            messages.error(request, 'Please select a valid file type.')
+            return redirect('tax_variance_upload')
+        
+        # Validate Excel structure before saving
+        processor = ExcelProcessor()
+        
+        # Save file temporarily to validate
+        temp_upload = ExcelUpload(
+            file=uploaded_file,
+            original_filename=uploaded_file.name,
+            file_type=file_type,
+            uploaded_by=request.user,
+            file_size=uploaded_file.size
+        )
+        temp_upload.save()
+        
+        validation_result = processor.validate_excel_structure(temp_upload.file.path, file_type)
+        
+        if not validation_result['valid']:
+            # Delete the invalid file
+            temp_upload.delete()
+            messages.error(request, f"Excel validation failed: {validation_result['error']}")
+            return redirect('tax_variance_upload')
+        
+        # File is valid, process it
+        if file_type == 'URA':
+            result = processor.process_ura_excel(temp_upload)
+        else:
+            result = processor.process_lgrb_excel(temp_upload)
+        
+        if result['success']:
+            # Mark as processed
+            temp_upload.processed = True
+            temp_upload.processed_at = timezone.now()
+            temp_upload.records_imported = result['imported_count']
+            temp_upload.save()
+            
+            # Log audit trail
+            AuditLog.objects.create(
+                user=request.user,
+                action='file_upload',
+                resource_type='excel_upload',
+                resource_id=str(temp_upload.id),
+                ip_address=request.META.get('REMOTE_ADDR'),
+                details={
+                    'filename': uploaded_file.name,
+                    'file_type': file_type,
+                    'file_size': uploaded_file.size,
+                    'records_imported': result['imported_count']
+                }
+            )
+            
+            messages.success(
+                request,
+                f'File "{uploaded_file.name}" uploaded successfully! '
+                f'{result["imported_count"]} records imported.'
+            )
+            
+            if result.get('errors'):
+                messages.warning(
+                    request,
+                    f'{len(result["errors"])} rows had errors and were skipped.'
+                )
+        else:
+            # Processing failed, delete file
+            temp_upload.delete()
+            messages.error(request, f'File processing failed: {result["error"]}')
+        
+        return redirect('tax_variance_dashboard')
+    
+    # Get recent uploads for display
+    recent_uploads = ExcelUpload.objects.filter(
+        uploaded_by=request.user
+    ).order_by('-uploaded_at')[:10]
+    
+    context = {
+        'recent_uploads': recent_uploads
+    }
+    
+    return render(request, 'dashboard/tax_variance_upload.html', context)
+
+
+@login_required
+def tax_variance_dashboard(request):
+    """Main tax variance dashboard"""
+    # Get filter parameters
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    operator_filter = request.GET.get('operator', 'all')
+    
+    # Default date range (last 4 weeks)
+    if not start_date_str or not end_date_str:
+        end_date = date.today()
+        start_date = end_date - timedelta(weeks=4)
+    else:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    
+    # Get variance data
+    variance_query = WeeklyGamingTaxVariance.objects.filter(
+        wednesday_date__gte=start_date,
+        wednesday_date__lte=end_date
+    ).order_by('-wednesday_date', 'operator_name')
+    
+    if operator_filter != 'all':
+        variance_query = variance_query.filter(
+            standardized_operator_name__icontains=operator_filter
+        )
+    
+    variance_data = list(variance_query)
+    
+    # Calculate summary statistics
+    total_variances = len(variance_data)
+    late_payments = len([v for v in variance_data if v.is_possible_late_payment])
+    early_payments = len([v for v in variance_data if v.is_early_payment])
+    significant_variances = len([v for v in variance_data if v.percentage_variance and abs(v.percentage_variance) > 10])
+    
+    # Total amounts
+    total_lgrb = sum(v.lgrb_gaming_tax for v in variance_data)
+    total_ura = sum(v.ura_gaming_tax for v in variance_data)
+    total_variance = total_ura - total_lgrb
+    
+    # Get unique operators for filter dropdown
+    operators = WeeklyGamingTaxVariance.objects.values_list(
+        'standardized_operator_name', 'operator_name'
+    ).distinct().order_by('operator_name')
+    
+    # Get recent uploads summary
+    recent_ura_uploads = ExcelUpload.objects.filter(
+        file_type='URA', 
+        processed=True
+    ).order_by('-uploaded_at')[:3]
+    
+    recent_lgrb_uploads = ExcelUpload.objects.filter(
+        file_type='LGRB', 
+        processed=True
+    ).order_by('-uploaded_at')[:3]
+    
+    context = {
+        'variance_data': variance_data,
+        'start_date': start_date,
+        'end_date': end_date,
+        'operator_filter': operator_filter,
+        'operators': operators,
+        'summary': {
+            'total_variances': total_variances,
+            'late_payments': late_payments,
+            'early_payments': early_payments,
+            'significant_variances': significant_variances,
+            'total_lgrb': total_lgrb,
+            'total_ura': total_ura,
+            'total_variance': total_variance,
+        },
+        'recent_ura_uploads': recent_ura_uploads,
+        'recent_lgrb_uploads': recent_lgrb_uploads,
+    }
+    
+    return render(request, 'dashboard/tax_variance_dashboard.html', context)
+
+
+@login_required
+def calculate_tax_variance(request):
+    """Calculate tax variance for specified date range"""
+    if request.method == 'POST':
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
+        
+        if not start_date_str or not end_date_str:
+            messages.error(request, 'Please provide both start and end dates.')
+            return redirect('tax_variance_dashboard')
+        
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+            
+            # Calculate variance
+            calculator = TaxVarianceCalculator()
+            result = calculator.calculate_gaming_tax_variance(start_date, end_date)
+            
+            if result['success']:
+                # Log audit trail
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='calculate_variance',
+                    resource_type='tax_variance',
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    details={
+                        'start_date': start_date_str,
+                        'end_date': end_date_str,
+                        'periods_analyzed': result['periods_analyzed'],
+                        'variance_records': result['variance_records']
+                    }
+                )
+                
+                messages.success(
+                    request,
+                    f'Tax variance calculated successfully! '
+                    f'{result["periods_analyzed"]} periods analyzed, '
+                    f'{result["variance_records"]} variance records created.'
+                )
+            else:
+                messages.error(request, 'Tax variance calculation failed.')
+        
+        except ValueError as e:
+            messages.error(request, f'Invalid date format: {e}')
+        except Exception as e:
+            messages.error(request, f'Error calculating variance: {e}')
+    
+    return redirect('tax_variance_dashboard')
+
+
+@login_required
+def operator_tax_detail(request, operator_name):
+    """Detailed tax analysis for specific operator"""
+    # Get variance data for operator
+    variance_data = WeeklyGamingTaxVariance.objects.filter(
+        standardized_operator_name=operator_name
+    ).order_by('-wednesday_date')
+    
+    if not variance_data:
+        messages.error(request, f'No tax data found for operator: {operator_name}')
+        return redirect('tax_variance_dashboard')
+    
+    # Get LGRB submissions for this operator
+    lgrb_data = LGRBSubmission.objects.filter(
+        standardized_operator_name=operator_name
+    ).order_by('-submission_date')
+    
+    # Get URA payments for this operator
+    ura_data = URAPayment.objects.filter(
+        standardized_taxpayer_name=operator_name,
+        tax_head='Gaming Tax'
+    ).order_by('-bank_realization_date')
+    
+    # Calculate operator summary
+    operator_summary = {
+        'total_variance_records': variance_data.count(),
+        'late_payment_flags': variance_data.filter(is_possible_late_payment=True).count(),
+        'early_payment_flags': variance_data.filter(is_early_payment=True).count(),
+        'total_lgrb_amount': sum(v.lgrb_gaming_tax for v in variance_data),
+        'total_ura_amount': sum(v.ura_gaming_tax for v in variance_data),
+        'lgrb_submission_count': lgrb_data.count(),
+        'ura_payment_count': ura_data.count(),
+    }
+    
+    operator_summary['total_variance'] = (
+        operator_summary['total_ura_amount'] - operator_summary['total_lgrb_amount']
+    )
+    
+    context = {
+        'operator_name': operator_name,
+        'variance_data': variance_data[:50],  # Show recent 50 records
+        'lgrb_data': lgrb_data[:20],  # Show recent 20 submissions
+        'ura_data': ura_data[:20],  # Show recent 20 payments
+        'operator_summary': operator_summary,
+    }
+    
+    return render(request, 'dashboard/operator_tax_detail.html', context)
