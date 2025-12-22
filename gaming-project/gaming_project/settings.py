@@ -32,6 +32,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lamb
 # Application definition
 
 INSTALLED_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -143,30 +144,158 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Custom Admin Configuration
-ADMIN_VOLT = {
-    'SIDEBAR_STYLE': 'dark',
-    'SIDEBAR_COLOR': 'primary',  # Uses our red primary color
-    'NAVBAR_COLOR': 'primary',
-    'SHOW_THEMES': True,
-    'SITE_TITLE': 'Gaming Analytics Admin',
-    'SITE_HEADER': 'Gaming Analytics Administration',
-    'SITE_BRAND': 'Gaming Analytics',
-    'WELCOME_SIGN': 'Welcome to Gaming Analytics Admin',
-    'COPYRIGHT': 'Gaming Analytics Team',
-    'CUSTOM_CSS': 'admin/css/admin_custom.css',
+# Jazzmin Admin Configuration with Gaming Analytics Theming
+JAZZMIN_SETTINGS = {
+    # Page Title
+    "site_title": "Gaming Analytics Admin",
+    
+    # Title on the login screen
+    "site_header": "Gaming Analytics",
+    
+    # Title on the brand (19 chars max)
+    "site_brand": "Gaming Analytics",
+    
+    # Logo to use for your site
+    "site_logo": "images/logo.png",  # Optional: add your logo
+    
+    # Logo to use for login form
+    "login_logo": None,
+    
+    # CSS classes that are applied to the logo above
+    "site_logo_classes": "img-circle",
+    
+    # Relative path to a favicon for your site
+    "site_icon": "images/favicon.ico",
+    
+    # Welcome text on the login screen
+    "welcome_sign": "Welcome to Gaming Analytics Administration",
+    
+    # Copyright on the footer
+    "copyright": "Gaming Analytics Team © 2025",
+    
+    # List of model admins to search from the search bar
+    "search_model": ["auth.User", "auth.Group"],
+    
+    # Field name on user model that contains avatar
+    "user_avatar": None,
+    
+    ############
+    # Top Menu #
+    ############
+    
+    # Links to put along the top menu
+    "topmenu_links": [
+        # Url that gets reversed (Permissions can be added)
+        {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
+        
+        # external url that opens in a new window
+        {"name": "Dashboard", "url": "/dashboard/", "new_window": True},
+        
+        # model admin to link to (Permissions checked against model)
+        {"model": "auth.User"},
+        
+        # App with dropdown menu to all its models pages
+        {"app": "accounts"},
+    ],
+    
+    #############
+    # User Menu #
+    #############
+    
+    # Additional links to include in the user menu on the top right
+    "usermenu_links": [
+        {"name": "Dashboard", "url": "/dashboard/", "new_window": False},
+        {"model": "auth.user"}
+    ],
+    
+    #############
+    # Side Menu #
+    #############
+    
+    # Whether to display the side menu
+    "show_sidebar": True,
+    
+    # Whether to auto expand the menu
+    "navigation_expanded": True,
+    
+    # Hide these apps when generating side menu
+    "hide_apps": [],
+    
+    # Hide these models when generating side menu
+    "hide_models": [],
+    
+    # List of apps (and models) to base side menu ordering off of
+    "order_with_respect_to": ["auth", "accounts", "dashboard"],
+    
+    # Custom icons for side menu apps/models
+    "icons": {
+        "auth": "fas fa-shield-alt",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "accounts": "fas fa-user-circle",
+        "dashboard": "fas fa-chart-line",
+        "sites.site": "fas fa-globe",
+    },
+    
+    # Icons that are used when one is not manually specified
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    
+    #################
+    # Related Modal #
+    #################
+    "related_modal_active": False,
+    
+    #############
+    # UI Tweaks #
+    #############
+    "custom_css": "admin/css/jazzmin_custom.css",
+    "custom_js": "admin/js/jazzmin_custom.js",
+    
+    # Whether to link font from fonts.googleapis.com
+    "use_google_fonts_cdn": True,
+    
+    # Whether to show the UI customizer on the sidebar
+    "show_ui_builder": True,
+    
+    ###############
+    # Change view #
+    ###############
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
 }
 
-# Admin Interface Customization
-ADMIN_INTERFACE = {
-    'SITE_TITLE': 'Gaming Analytics',
-    'SITE_HEADER': 'Gaming Analytics Administration',
-    'SITE_BRAND': 'Gaming Analytics',
-    'WELCOME_SIGN': 'Welcome to Gaming Analytics',
-    'COPYRIGHT': 'Gaming Analytics Team © 2025',
-    'CSS_GENERIC_FIELD_WRAPPER': True,
-    'SHOW_THEMES': False,
-    'THEME': 'default',
+# Jazzmin UI Tweaks
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-dark",
+    "accent": "accent-danger",  # Gaming red theme
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-danger",  # Dark sidebar with red accents
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-danger",  # Use red instead of blue
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
 }
 
 # Media files

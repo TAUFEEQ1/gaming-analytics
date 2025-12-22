@@ -1,0 +1,303 @@
+/* Custom Jazzmin CSS for Gaming Analytics */
+/* Maintains the red gaming color scheme with AdminLTE styling */
+
+:root {
+    --gaming-primary: #8B0000;
+    --gaming-primary-dark: #660000;
+    --gaming-primary-light: #A31414;
+    --gaming-secondary: #DC143C;
+    --gaming-accent: #B22222;
+    --gaming-success: #10B981;
+    --gaming-danger: #EF4444;
+    --gaming-warning: #F59E0B;
+    --gaming-info: #3B82F6;
+}
+
+/* Override AdminLTE primary color with gaming red */
+.btn-primary,
+.btn-outline-primary:hover,
+.bg-primary,
+.badge-primary {
+    background-color: var(--gaming-primary) !important;
+    border-color: var(--gaming-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--gaming-primary-dark) !important;
+    border-color: var(--gaming-primary-dark) !important;
+}
+
+.btn-outline-primary {
+    color: var(--gaming-primary) !important;
+    border-color: var(--gaming-primary) !important;
+}
+
+/* Sidebar customization */
+.sidebar-dark-danger .nav-sidebar > .nav-item > .nav-link.active,
+.sidebar-dark-danger .nav-sidebar > .nav-item > .nav-link:focus,
+.sidebar-dark-danger .nav-sidebar > .nav-item > .nav-link:hover {
+    background-color: var(--gaming-primary) !important;
+    color: #fff !important;
+}
+
+.sidebar-dark-danger {
+    background-color: #2c3e50 !important;
+}
+
+.sidebar-dark-danger .nav-sidebar > .nav-item > .nav-link {
+    color: #c2c7d0;
+    transition: all 0.3s ease;
+}
+
+.sidebar-dark-danger .nav-sidebar > .nav-item > .nav-link:hover {
+    background-color: rgba(139, 0, 0, 0.1) !important;
+}
+
+/* Brand logo area */
+.brand-link {
+    background-color: var(--gaming-primary-dark) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-text {
+    color: #fff !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px;
+}
+
+/* Main header */
+.main-header.navbar {
+    background-color: #fff !important;
+    border-bottom: 1px solid #e3e6f0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-nav > .nav-item > .nav-link {
+    color: #5a5c69 !important;
+}
+
+.navbar-nav > .nav-item > .nav-link:hover {
+    color: var(--gaming-primary) !important;
+}
+
+/* Content area */
+.content-wrapper {
+    background-color: #f8f9fc;
+}
+
+/* Cards and modules */
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    padding: 1.25rem 1.5rem;
+}
+
+.card-header h3,
+.card-header h4 {
+    color: #5a5c69;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Tables */
+.table thead th {
+    background-color: #f8f9fc;
+    border-color: #e3e6f0;
+    color: #5a5c69;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    border-color: #e3e6f0;
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(139, 0, 0, 0.05);
+}
+
+/* Links and buttons with gaming theme */
+a {
+    color: var(--gaming-primary);
+    transition: color 0.15s ease-in-out;
+}
+
+a:hover {
+    color: var(--gaming-primary-dark);
+}
+
+/* Form controls */
+.form-control:focus {
+    border-color: var(--gaming-primary);
+    box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+}
+
+/* Pagination */
+.page-link {
+    color: var(--gaming-primary);
+}
+
+.page-link:hover {
+    color: var(--gaming-primary-dark);
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+.page-item.active .page-link {
+    background-color: var(--gaming-primary);
+    border-color: var(--gaming-primary);
+}
+
+/* Alert messages */
+.alert-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+    color: #1e40af;
+}
+
+.alert-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: #065f46;
+}
+
+.alert-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #92400e;
+}
+
+.alert-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #991b1b;
+}
+
+/* Dashboard widgets */
+.info-box {
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease-in-out;
+}
+
+.info-box:hover {
+    transform: translateY(-2px);
+}
+
+.info-box-icon {
+    background-color: var(--gaming-primary) !important;
+    color: #fff !important;
+}
+
+.info-box-content {
+    padding: 1.25rem;
+}
+
+/* Login page customization */
+.login-page {
+    background: linear-gradient(135deg, var(--gaming-primary-dark) 0%, var(--gaming-primary) 100%);
+}
+
+.card.card-outline.card-primary {
+    border-top: 3px solid var(--gaming-primary);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.login-logo a {
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 2rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Custom enhancements */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0.75rem 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: #6c757d;
+    content: "/";
+}
+
+.breadcrumb-item a {
+    color: var(--gaming-primary);
+    text-decoration: none;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--gaming-primary-dark);
+    text-decoration: underline;
+}
+
+/* Small enhancements */
+.small-box {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.small-box .icon {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 3.5rem;
+}
+
+.small-box:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(139, 0, 0, 0.1);
+    color: var(--gaming-primary-dark);
+}
+
+/* Gaming-specific icons and styling */
+.fas.fa-gamepad {
+    color: var(--gaming-primary);
+}
+
+.nav-icon.fas.fa-chart-line {
+    color: var(--gaming-success);
+}
+
+.nav-icon.fas.fa-users {
+    color: var(--gaming-info);
+}
+
+.nav-icon.fas.fa-shield-alt {
+    color: var(--gaming-warning);
+}
+
+/* Responsive enhancements */
+@media (max-width: 768px) {
+    .content-wrapper {
+        padding: 1rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+}
