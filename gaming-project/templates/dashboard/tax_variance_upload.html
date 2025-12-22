@@ -95,7 +95,7 @@
                                     <div>
                                         <h6 class="mb-1">{{ upload.original_filename|truncatechars:30 }}</h6>
                                         <p class="mb-1">
-                                            <span class="badge bg-{{ upload.file_type|lower == 'ura'|yesno:'info,success' }}">
+                                            <span class="badge bg-{% if upload.file_type == 'URA' %}info{% else %}success{% endif %}">
                                                 {{ upload.file_type }}
                                             </span>
                                         </p>

@@ -24,49 +24,71 @@
 
     <!-- Summary Cards -->
     <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-4">
+        <!-- Gaming Tax Summary -->
+        <div class="col-lg-2 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="text-primary mb-2">
-                        <i class="fas fa-list-ol fa-2x"></i>
+                        <i class="fas fa-gamepad fa-2x"></i>
                     </div>
-                    <h3 class="text-primary">{{ summary.total_variances }}</h3>
-                    <p class="text-muted mb-0">Total Variance Records</p>
+                    <h4 class="text-primary">{{ gaming_summary.total_variances }}</h4>
+                    <p class="text-muted mb-0 small">Gaming Tax Records</p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 mb-4">
+        <div class="col-lg-2 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="text-warning mb-2">
                         <i class="fas fa-clock fa-2x"></i>
                     </div>
-                    <h3 class="text-warning">{{ summary.late_payments }}</h3>
-                    <p class="text-muted mb-0">Possible Late Payments</p>
+                    <h4 class="text-warning">{{ gaming_summary.late_payments }}</h4>
+                    <p class="text-muted mb-0 small">Late Payments</p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 mb-4">
+        <div class="col-lg-2 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
                     <div class="text-danger mb-2">
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
                     </div>
-                    <h3 class="text-danger">{{ summary.significant_variances }}</h3>
-                    <p class="text-muted mb-0">Significant Variances (>10%)</p>
+                    <h4 class="text-danger">{{ gaming_summary.significant_variances }}</h4>
+                    <p class="text-muted mb-0 small">High Gaming Variance</p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 mb-4">
+        <!-- WHT Summary -->
+        <div class="col-lg-2 col-md-6 mb-3">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
-                    <div class="text-{% if summary.total_variance > 0 %}success{% elif summary.total_variance < 0 %}danger{% else %}secondary{% endif %} mb-2">
-                        <i class="fas fa-money-bill fa-2x"></i>
+                    <div class="text-info mb-2">
+                        <i class="fas fa-percentage fa-2x"></i>
                     </div>
-                    <h3 class="text-{% if summary.total_variance > 0 %}success{% elif summary.total_variance < 0 %}danger{% else %}secondary{% endif %}">
-                        {{ summary.total_variance|floatformat:0 }}
-                    </h3>
-                    <p class="text-muted mb-0">Total Variance (UGX)</p>
+                    <h4 class="text-info">{{ wht_summary.total_variances }}</h4>
+                    <p class="text-muted mb-0 small">WHT Records</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-danger mb-2">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <h4 class="text-danger">{{ wht_summary.significant_variances }}</h4>
+                    <p class="text-muted mb-0 small">High WHT Variance</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="text-success mb-2">
+                        <i class="fas fa-dollar-sign fa-2x"></i>
+                    </div>
+                    <h4 class="text-success small">{{ gaming_summary.total_variance|abs|floatformat:0 }}</h4>
+                    <p class="text-muted mb-0 small">Total Variance</p>
                 </div>
             </div>
         </div>
@@ -108,75 +130,163 @@
         </div>
     </div>
 
-    <!-- Variance Data Table -->
+    <!-- Variance Data Tables -->
     <div class="row">
         <div class="col-12">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Weekly Gaming Tax Variance</h5>
+                    <ul class="nav nav-tabs card-header-tabs" id="varianceTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active text-white" id="gaming-tab" data-bs-toggle="tab" href="#gaming" role="tab">
+                                <i class="fas fa-gamepad me-1"></i>Gaming Tax (Weekly)
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link text-white-50" id="wht-tab" data-bs-toggle="tab" href="#wht" role="tab">
+                                <i class="fas fa-percentage me-1"></i>Withholding Tax (Monthly)
+                            </a>
+                        </li>
+                    </ul>
                 </div>
                 <div class="card-body">
-                    {% if variance_data %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Week Ending</th>
-                                        <th>Operator</th>
-                                        <th class="text-end">LGRB Gaming Tax</th>
-                                        <th class="text-end">URA Gaming Tax</th>
-                                        <th class="text-end">Variance</th>
-                                        <th class="text-end">Variance %</th>
-                                        <th class="text-center">Flags</th>
-                                        <th class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for variance in variance_data %}
-                                    <tr>
-                                        <td>{{ variance.wednesday_date|date:"M d, Y" }}</td>
-                                        <td>
-                                            <strong>{{ variance.operator_name }}</strong>
-                                            <small class="text-muted d-block">
-                                                LGRB: {{ variance.lgrb_submission_count }}, URA: {{ variance.ura_payment_count }}
-                                            </small>
-                                        </td>
-                                        <td class="text-end">{{ variance.lgrb_gaming_tax|floatformat:0 }}</td>
-                                        <td class="text-end">{{ variance.ura_gaming_tax|floatformat:0 }}</td>
-                                        <td class="text-end text-{% if variance.absolute_variance > 0 %}success{% elif variance.absolute_variance < 0 %}danger{% else %}muted{% endif %}">
-                                            {{ variance.absolute_variance|floatformat:0 }}
-                                        </td>
-                                        <td class="text-end text-{% if variance.percentage_variance %}{% if variance.percentage_variance > 10 %}danger{% elif variance.percentage_variance < -10 %}danger{% else %}muted{% endif %}{% else %}muted{% endif %}">
-                                            {% if variance.percentage_variance %}{{ variance.percentage_variance|floatformat:2 }}%{% else %}-{% endif %}
-                                        </td>
-                                        <td class="text-center">
-                                            {% if variance.is_possible_late_payment %}
-                                                <span class="badge bg-warning" title="Possible Late Payment">
-                                                    <i class="fas fa-clock"></i> Late
-                                                </span>
-                                            {% elif variance.is_early_payment %}
-                                                <span class="badge bg-info" title="Early Payment">
-                                                    <i class="fas fa-fast-forward"></i> Early
-                                                </span>
-                                            {% endif %}
-                                            {% if variance.percentage_variance and variance.percentage_variance|abs > 10 %}
-                                                <span class="badge bg-danger" title="Significant Variance">
-                                                    <i class="fas fa-exclamation"></i> High
-                                                </span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-center">
-                                            <a href="{% url 'operator_tax_detail' variance.standardized_operator_name %}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i> Details
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                    <div class="tab-content" id="varianceTabsContent">
+                        <!-- Gaming Tax Tab -->
+                        <div class="tab-pane fade show active" id="gaming" role="tabpanel">
+                            {% if gaming_variance_data %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Week Ending</th>
+                                                <th>Operator</th>
+                                                <th class="text-end">LGRB Gaming Tax</th>
+                                                <th class="text-end">URA Gaming Tax</th>
+                                                <th class="text-end">Variance</th>
+                                                <th class="text-end">Variance %</th>
+                                                <th class="text-center">Flags</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for variance in gaming_variance_data %}
+                                            <tr>
+                                                <td>{{ variance.wednesday_date|date:"M d, Y" }}</td>
+                                                <td>
+                                                    <strong>{{ variance.operator_name }}</strong>
+                                                    <small class="text-muted d-block">
+                                                        LGRB: {{ variance.lgrb_submission_count }}, URA: {{ variance.ura_payment_count }}
+                                                    </small>
+                                                </td>
+                                                <td class="text-end">{{ variance.lgrb_gaming_tax|floatformat:0 }}</td>
+                                                <td class="text-end">{{ variance.ura_gaming_tax|floatformat:0 }}</td>
+                                                <td class="text-end text-{% if variance.absolute_variance > 0 %}success{% elif variance.absolute_variance < 0 %}danger{% else %}muted{% endif %}">
+                                                    {{ variance.absolute_variance|floatformat:0 }}
+                                                </td>
+                                                <td class="text-end text-{% if variance.percentage_variance %}{% if variance.percentage_variance > 10 %}danger{% elif variance.percentage_variance < -10 %}danger{% else %}muted{% endif %}{% else %}muted{% endif %}">
+                                                    {% if variance.percentage_variance %}{{ variance.percentage_variance|floatformat:2 }}%{% else %}-{% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if variance.is_possible_late_payment %}
+                                                        <span class="badge bg-warning" title="Possible Late Payment">
+                                                            <i class="fas fa-clock"></i> Late
+                                                        </span>
+                                                    {% elif variance.is_early_payment %}
+                                                        <span class="badge bg-info" title="Early Payment">
+                                                            <i class="fas fa-fast-forward"></i> Early
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if variance.percentage_variance and variance.percentage_variance|abs > 10 %}
+                                                        <span class="badge bg-danger" title="Significant Variance">
+                                                            <i class="fas fa-exclamation"></i> High
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    <a href="{% url 'operator_tax_detail' variance.standardized_operator_name %}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Details
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-gamepad fa-4x text-muted opacity-25 mb-3"></i>
+                                    <h5 class="text-muted">No gaming tax variance data available</h5>
+                                    <p class="text-muted">Upload URA and LGRB files and calculate variance to see results.</p>
+                                </div>
+                            {% endif %}
                         </div>
-                    {% else %}
+                        
+                        <!-- WHT Tab -->
+                        <div class="tab-pane fade" id="wht" role="tabpanel">
+                            {% if wht_variance_data %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Month</th>
+                                                <th>Operator</th>
+                                                <th class="text-end">LGRB Withholding Tax</th>
+                                                <th class="text-end">URA Withholding Tax</th>
+                                                <th class="text-end">Variance</th>
+                                                <th class="text-end">Variance %</th>
+                                                <th class="text-center">Flags</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for variance in wht_variance_data %}
+                                            <tr>
+                                                <td>{{ variance.month_name }} {{ variance.year }}</td>
+                                                <td>
+                                                    <strong>{{ variance.operator_name }}</strong>
+                                                    <small class="text-muted d-block">
+                                                        LGRB: {{ variance.lgrb_submission_count }}, URA: {{ variance.ura_payment_count }}
+                                                    </small>
+                                                </td>
+                                                <td class="text-end">{{ variance.lgrb_withholding_tax|floatformat:0 }}</td>
+                                                <td class="text-end">{{ variance.ura_withholding_tax|floatformat:0 }}</td>
+                                                <td class="text-end text-{% if variance.absolute_variance > 0 %}success{% elif variance.absolute_variance < 0 %}danger{% else %}muted{% endif %}">
+                                                    {{ variance.absolute_variance|floatformat:0 }}
+                                                </td>
+                                                <td class="text-end text-{% if variance.percentage_variance %}{% if variance.percentage_variance > 10 %}danger{% elif variance.percentage_variance < -10 %}danger{% else %}muted{% endif %}{% else %}muted{% endif %}">
+                                                    {% if variance.percentage_variance %}{{ variance.percentage_variance|floatformat:2 }}%{% else %}-{% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if variance.is_possible_late_payment %}
+                                                        <span class="badge bg-warning" title="Possible Late Payment">
+                                                            <i class="fas fa-clock"></i> Late
+                                                        </span>
+                                                    {% elif variance.is_early_payment %}
+                                                        <span class="badge bg-info" title="Early Payment">
+                                                            <i class="fas fa-fast-forward"></i> Early
+                                                        </span>
+                                                    {% endif %}
+                                                    {% if variance.percentage_variance and variance.percentage_variance|abs > 10 %}
+                                                        <span class="badge bg-danger" title="Significant Variance">
+                                                            <i class="fas fa-exclamation"></i> High
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-percentage fa-4x text-muted opacity-25 mb-3"></i>
+                                    <h5 class="text-muted">No withholding tax variance data available</h5>
+                                    <p class="text-muted">Upload URA and LGRB files and calculate variance to see results.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if not gaming_variance_data and not wht_variance_data %}
                         <div class="text-center py-5">
                             <i class="fas fa-chart-bar fa-4x text-muted opacity-25 mb-3"></i>
                             <h5 class="text-muted">No variance data available</h5>
@@ -262,7 +372,7 @@
                     <div class="alert alert-info">
                         <small>
                             <i class="fas fa-info-circle me-1"></i>
-                            This will calculate weekly Gaming Tax variance for Wednesday periods within the specified date range.
+                            This will calculate both <strong>Gaming Tax</strong> variance (weekly Wednesday periods) and <strong>Withholding Tax</strong> variance (calendar months) within the specified date range.
                         </small>
                     </div>
                 </div>

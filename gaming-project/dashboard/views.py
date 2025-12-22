@@ -578,34 +578,64 @@ def tax_variance_dashboard(request):
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
     
-    # Get variance data
-    variance_query = WeeklyGamingTaxVariance.objects.filter(
+    # Get Gaming Tax variance data (weekly)
+    gaming_variance_query = WeeklyGamingTaxVariance.objects.filter(
         wednesday_date__gte=start_date,
         wednesday_date__lte=end_date
     ).order_by('-wednesday_date', 'operator_name')
     
     if operator_filter != 'all':
-        variance_query = variance_query.filter(
+        gaming_variance_query = gaming_variance_query.filter(
             standardized_operator_name__icontains=operator_filter
         )
     
-    variance_data = list(variance_query)
+    gaming_variance_data = list(gaming_variance_query)
     
-    # Calculate summary statistics
-    total_variances = len(variance_data)
-    late_payments = len([v for v in variance_data if v.is_possible_late_payment])
-    early_payments = len([v for v in variance_data if v.is_early_payment])
-    significant_variances = len([v for v in variance_data if v.percentage_variance and abs(v.percentage_variance) > 10])
+    # Get WHT variance data (monthly)
+    wht_variance_query = MonthlyWHTVariance.objects.filter(
+        month_year__gte=start_date.replace(day=1),
+        month_year__lte=end_date
+    ).order_by('-month_year', 'operator_name')
     
-    # Total amounts
-    total_lgrb = sum(v.lgrb_gaming_tax for v in variance_data)
-    total_ura = sum(v.ura_gaming_tax for v in variance_data)
-    total_variance = total_ura - total_lgrb
+    if operator_filter != 'all':
+        wht_variance_query = wht_variance_query.filter(
+            standardized_operator_name__icontains=operator_filter
+        )
     
-    # Get unique operators for filter dropdown
-    operators = WeeklyGamingTaxVariance.objects.values_list(
+    wht_variance_data = list(wht_variance_query)
+    
+    # Calculate Gaming Tax summary statistics
+    total_gaming_variances = len(gaming_variance_data)
+    late_payments = len([v for v in gaming_variance_data if v.is_possible_late_payment])
+    early_payments = len([v for v in gaming_variance_data if v.is_early_payment])
+    significant_gaming_variances = len([v for v in gaming_variance_data if v.percentage_variance and abs(v.percentage_variance) > 10])
+    
+    # Gaming Tax totals
+    total_lgrb_gaming = sum(v.lgrb_gaming_tax for v in gaming_variance_data)
+    total_ura_gaming = sum(v.ura_gaming_tax for v in gaming_variance_data)
+    total_gaming_variance = total_ura_gaming - total_lgrb_gaming
+    
+    # Calculate WHT summary statistics
+    total_wht_variances = len(wht_variance_data)
+    significant_wht_variances = len([v for v in wht_variance_data if v.percentage_variance and abs(v.percentage_variance) > 10])
+    
+    # WHT totals
+    total_lgrb_wht = sum(v.lgrb_withholding_tax for v in wht_variance_data)
+    total_ura_wht = sum(v.ura_withholding_tax for v in wht_variance_data)
+    total_wht_variance = total_ura_wht - total_lgrb_wht
+    
+    # Get unique operators for filter dropdown (from both tax types)
+    gaming_operators = WeeklyGamingTaxVariance.objects.values_list(
         'standardized_operator_name', 'operator_name'
-    ).distinct().order_by('operator_name')
+    ).distinct()
+    
+    wht_operators = MonthlyWHTVariance.objects.values_list(
+        'standardized_operator_name', 'operator_name'
+    ).distinct()
+    
+    # Combine and deduplicate operators
+    all_operators = list(set(list(gaming_operators) + list(wht_operators)))
+    all_operators.sort(key=lambda x: x[1])  # Sort by operator name
     
     # Get recent uploads summary
     recent_ura_uploads = ExcelUpload.objects.filter(
@@ -619,19 +649,27 @@ def tax_variance_dashboard(request):
     ).order_by('-uploaded_at')[:3]
     
     context = {
-        'variance_data': variance_data,
+        'gaming_variance_data': gaming_variance_data,
+        'wht_variance_data': wht_variance_data,
         'start_date': start_date,
         'end_date': end_date,
         'operator_filter': operator_filter,
-        'operators': operators,
-        'summary': {
-            'total_variances': total_variances,
+        'operators': all_operators,
+        'gaming_summary': {
+            'total_variances': total_gaming_variances,
             'late_payments': late_payments,
             'early_payments': early_payments,
-            'significant_variances': significant_variances,
-            'total_lgrb': total_lgrb,
-            'total_ura': total_ura,
-            'total_variance': total_variance,
+            'significant_variances': significant_gaming_variances,
+            'total_lgrb': total_lgrb_gaming,
+            'total_ura': total_ura_gaming,
+            'total_variance': total_gaming_variance,
+        },
+        'wht_summary': {
+            'total_variances': total_wht_variances,
+            'significant_variances': significant_wht_variances,
+            'total_lgrb': total_lgrb_wht,
+            'total_ura': total_ura_wht,
+            'total_variance': total_wht_variance,
         },
         'recent_ura_uploads': recent_ura_uploads,
         'recent_lgrb_uploads': recent_lgrb_uploads,
@@ -655,11 +693,15 @@ def calculate_tax_variance(request):
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
             
-            # Calculate variance
             calculator = TaxVarianceCalculator()
-            result = calculator.calculate_gaming_tax_variance(start_date, end_date)
             
-            if result['success']:
+            # Calculate Gaming Tax variance (weekly)
+            gaming_result = calculator.calculate_gaming_tax_variance(start_date, end_date)
+            
+            # Calculate Withholding Tax variance (monthly) 
+            wht_result = calculator.calculate_monthly_wht_variance(start_date, end_date)
+            
+            if gaming_result['success'] and wht_result['success']:
                 # Log audit trail
                 AuditLog.objects.create(
                     user=request.user,
@@ -669,19 +711,28 @@ def calculate_tax_variance(request):
                     details={
                         'start_date': start_date_str,
                         'end_date': end_date_str,
-                        'periods_analyzed': result['periods_analyzed'],
-                        'variance_records': result['variance_records']
+                        'gaming_periods_analyzed': gaming_result['periods_analyzed'],
+                        'gaming_variance_records': gaming_result['variance_records'],
+                        'wht_periods_analyzed': wht_result['periods_analyzed'],
+                        'wht_variance_records': wht_result['variance_records']
                     }
                 )
                 
                 messages.success(
                     request,
                     f'Tax variance calculated successfully! '
-                    f'{result["periods_analyzed"]} periods analyzed, '
-                    f'{result["variance_records"]} variance records created.'
+                    f'Gaming Tax: {gaming_result["periods_analyzed"]} weeks analyzed, '
+                    f'{gaming_result["variance_records"]} records created. '
+                    f'WHT: {wht_result["periods_analyzed"]} months analyzed, '
+                    f'{wht_result["variance_records"]} records created.'
                 )
             else:
-                messages.error(request, 'Tax variance calculation failed.')
+                error_msg = []
+                if not gaming_result['success']:
+                    error_msg.append('Gaming Tax variance calculation failed')
+                if not wht_result['success']:
+                    error_msg.append('WHT variance calculation failed')
+                messages.error(request, '. '.join(error_msg) + '.')
         
         except ValueError as e:
             messages.error(request, f'Invalid date format: {e}')

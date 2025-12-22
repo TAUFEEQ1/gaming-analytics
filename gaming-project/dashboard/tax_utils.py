@@ -13,10 +13,18 @@ class OperatorNameStandardizer:
     
     def __init__(self):
         self.common_variations = {
-            'TEST': ['TEST', 'TEST1', 'TEST2', 'TEST3', 'TEST11', 'TEST24', 'TEST27', 'TEST37'],
-            'BETTING': ['BETTING', 'BET', 'SPORTS', 'SPORT'],
+            # Keep specific test operator names distinct
+            'TEST1': ['TEST1', 'TEST 1'],
+            'TEST11': ['TEST11', 'TEST 11'],
+            'TEST16': ['TEST16', 'TEST 16'],
+            'TEST24': ['TEST24', 'TEST 24'],
+            'TEST27': ['TEST27', 'TEST 27'],
+            'TEST37': ['TEST37', 'TEST 37'],
+            # Generic categories
+            'BETTING': ['BETTING', 'BET', 'SPORTS', 'SPORT', 'GENERAL BETTING'],
             'CASINO': ['CASINO', 'CASINOS', 'GAMING'],
-            'LOTTERY': ['LOTTERY', 'LOTTO', 'NUMBERS'],
+            'SLOT': ['SLOT', 'SLOTS', 'SLOT MACHINES', 'SLOT MACHINE'],
+            'BINGO': ['BINGO', 'BINGO GAMES'],
             'LIMITED': ['LIMITED', 'LTD', 'LTD.', 'L.T.D'],
             'COMPANY': ['COMPANY', 'CO', 'CO.', 'CORP'],
             'UGANDA': ['UGANDA', 'UG', 'UGANDAN'],
@@ -37,6 +45,12 @@ class OperatorNameStandardizer:
         words = cleaned.split()
         standardized_words = []
         
+        # First check if the entire cleaned name matches any variation
+        for standard, variations in self.common_variations.items():
+            if cleaned in variations:
+                return standard
+        
+        # If no full match, process word by word
         for word in words:
             # Find if word matches any variation group
             standardized = word
@@ -294,10 +308,23 @@ class TaxVarianceCalculator:
         while wednesday <= end_date:
             # Period is previous Wednesday + 1 day to current Wednesday
             period_start = wednesday - datetime.timedelta(days=6)  # Previous Wednesday + 1
+            period_end = wednesday
+            
+            # Extend the last Wednesday of each month to include end-of-month LGRB submissions
+            # Check if this is the last Wednesday of the month by seeing if next Wednesday is in different month
+            next_wednesday = wednesday + datetime.timedelta(days=7)
+            if next_wednesday.month != wednesday.month:
+                # This is the last Wednesday of the month, extend to month end
+                from calendar import monthrange
+                last_day = monthrange(wednesday.year, wednesday.month)[1]
+                month_end = wednesday.replace(day=last_day)
+                if month_end > period_end:
+                    period_end = month_end
+            
             periods.append({
                 'wednesday': wednesday,
                 'start': period_start,
-                'end': wednesday
+                'end': period_end
             })
             wednesday += datetime.timedelta(days=7)
         
@@ -309,11 +336,13 @@ class TaxVarianceCalculator:
         results = []
         
         for period in periods:
-            # Get LGRB submissions for this Wednesday
+            # Get LGRB submissions for this Wednesday period
+            # LGRB submissions are typically end-of-month, so we map them to the appropriate Wednesday period
             lgrb_data = LGRBSubmission.objects.filter(
-                submission_date=period['wednesday']
+                submission_date__gte=period['start'],
+                submission_date__lte=period['end']
             ).values('standardized_operator_name').annotate(
-                total_gaming_tax=models.Sum('gaming_tax'),
+                total_gaming_tax=models.Sum('gaming_tax'),  # Sum across all categories for each operator
                 submission_count=models.Count('id')
             )
             
@@ -373,5 +402,100 @@ class TaxVarianceCalculator:
         return {
             'success': True,
             'periods_analyzed': len(periods),
+            'variance_records': len(results)
+        }
+
+    def calculate_monthly_wht_variance(self, start_date: datetime.date, end_date: datetime.date) -> dict:
+        """Calculate monthly withholding tax variance for date range"""
+        # Generate monthly periods between start and end dates
+        months = []
+        current = start_date.replace(day=1)  # Start of month
+        
+        while current <= end_date:
+            # Get last day of current month
+            if current.month == 12:
+                next_month = current.replace(year=current.year + 1, month=1)
+            else:
+                next_month = current.replace(month=current.month + 1)
+            
+            month_end = next_month - datetime.timedelta(days=1)
+            
+            months.append({
+                'year': current.year,
+                'month': current.month,
+                'start': current,
+                'end': min(month_end, end_date)
+            })
+            
+            current = next_month
+            if current > end_date:
+                break
+        
+        results = []
+        
+        for period in months:
+            # Get LGRB withholding tax submissions for this month
+            lgrb_data = LGRBSubmission.objects.filter(
+                submission_date__year=period['year'],
+                submission_date__month=period['month']
+            ).values('standardized_operator_name').annotate(
+                total_withholding_tax=models.Sum('withholding_tax'),
+                submission_count=models.Count('id')
+            )
+            
+            # Get URA withholding tax payments for this month
+            ura_data = URAPayment.objects.filter(
+                tax_head='Withholding Tax',
+                bank_realization_date__year=period['year'],
+                bank_realization_date__month=period['month']
+            ).values('standardized_taxpayer_name').annotate(
+                total_withholding_tax=models.Sum('amount_paid'),
+                payment_count=models.Count('id')
+            )
+            
+            # Convert to dictionaries for easier lookup
+            lgrb_dict = {item['standardized_operator_name']: item for item in lgrb_data}
+            ura_dict = {item['standardized_taxpayer_name']: item for item in ura_data}
+            
+            # Get all unique operators
+            all_operators = set(lgrb_dict.keys()) | set(ura_dict.keys())
+            
+            for operator in all_operators:
+                lgrb_amount = lgrb_dict.get(operator, {}).get('total_withholding_tax', Decimal('0'))
+                ura_amount = ura_dict.get(operator, {}).get('total_withholding_tax', Decimal('0'))
+                
+                variance = ura_amount - lgrb_amount
+                percentage_variance = None
+                
+                # Calculate percentage variance
+                if lgrb_amount != 0:
+                    percentage_variance = (variance / lgrb_amount) * 100
+                
+                # Determine special flags
+                is_late_payment = (lgrb_amount == 0 and ura_amount > 0)
+                is_early_payment = (ura_amount == 0 and lgrb_amount > 0)
+                
+                # Create or update variance record
+                variance_record, created = MonthlyWHTVariance.objects.update_or_create(
+                    month_year=period['start'],
+                    standardized_operator_name=operator,
+                    defaults={
+                        'operator_name': operator,  # Will be improved with reverse lookup
+                        'lgrb_withholding_tax': lgrb_amount,
+                        'lgrb_submission_count': lgrb_dict.get(operator, {}).get('submission_count', 0),
+                        'ura_withholding_tax': ura_amount,
+                        'ura_payment_count': ura_dict.get(operator, {}).get('payment_count', 0),
+                        'absolute_variance': variance,
+                        'percentage_variance': percentage_variance,
+                        'is_possible_late_payment': is_late_payment,
+                        'is_early_payment': is_early_payment,
+                    }
+                )
+                
+                results.append(variance_record)
+        
+        return {
+            'success': True,
+            'months_analyzed': len(months),
             'variance_records': len(results)
         }

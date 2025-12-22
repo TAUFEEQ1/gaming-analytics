@@ -37,8 +37,8 @@ class LGRBSubmission(models.Model):
     OPERATOR_CATEGORIES = [
         ('GENERAL BETTING', 'General Betting'),
         ('CASINOS', 'Casinos'),
-        ('SPORTS BETTING', 'Sports Betting'),
-        ('LOTTERY', 'Lottery'),
+        ('SLOT MACHINES', 'Slot Machines'),
+        ('BINGO', 'Bingo'),
         ('OTHER', 'Other'),
     ]
     
@@ -168,8 +168,8 @@ class WeeklyGamingTaxVariance(models.Model):
 
 class MonthlyWHTVariance(models.Model):
     """Store monthly withholding tax variance analysis results"""
-    # Calendar month period
-    month_year = models.DateField(db_index=True, help_text="First day of the month")
+    # Calendar month period (using single date field for first day of month)
+    month_year = models.DateField(db_index=True, help_text="First day of the month for this variance period")
     
     # Operator information
     operator_name = models.CharField(max_length=255)
@@ -188,8 +188,8 @@ class MonthlyWHTVariance(models.Model):
     percentage_variance = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
     
     # Special flags
-    is_possible_late_payment = models.BooleanField(default=False)
-    is_early_payment = models.BooleanField(default=False)
+    is_possible_late_payment = models.BooleanField(default=False, help_text="LGRB > 0 but URA = 0")
+    is_early_payment = models.BooleanField(default=False, help_text="URA = 0 but LGRB > 0")
     
     # Analysis metadata
     analysis_date = models.DateTimeField(auto_now_add=True)
@@ -203,7 +203,37 @@ class MonthlyWHTVariance(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.operator_name} - {self.month_year.strftime('%Y-%m')} - WHT Variance: {self.absolute_variance}"
+        return f"{self.operator_name} - {self.month_name} {self.year} - WHT Variance: {self.absolute_variance}"
+    
+    @property
+    def year(self):
+        """Get year from month_year date"""
+        return self.month_year.year
+    
+    @property
+    def month(self):
+        """Get month number from month_year date"""
+        return self.month_year.month
+    
+    @property
+    def month_name(self):
+        """Get month name"""
+        import calendar
+        return calendar.month_name[self.month]
+    
+    @property
+    def variance_status(self):
+        """Get human-readable variance status"""
+        if self.is_possible_late_payment:
+            return "Possible Late Payment"
+        elif self.is_early_payment:
+            return "Early Payment"
+        elif abs(self.absolute_variance) < Decimal('1000'):
+            return "Minor Variance"
+        elif abs(self.percentage_variance or 0) > 10:
+            return "Significant Variance"
+        else:
+            return "Variance Detected"
 
 
 class AuditLog(models.Model):
