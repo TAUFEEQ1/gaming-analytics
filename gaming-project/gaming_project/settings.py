@@ -143,6 +143,32 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Custom Admin Configuration
+ADMIN_VOLT = {
+    'SIDEBAR_STYLE': 'dark',
+    'SIDEBAR_COLOR': 'primary',  # Uses our red primary color
+    'NAVBAR_COLOR': 'primary',
+    'SHOW_THEMES': True,
+    'SITE_TITLE': 'Gaming Analytics Admin',
+    'SITE_HEADER': 'Gaming Analytics Administration',
+    'SITE_BRAND': 'Gaming Analytics',
+    'WELCOME_SIGN': 'Welcome to Gaming Analytics Admin',
+    'COPYRIGHT': 'Gaming Analytics Team',
+    'CUSTOM_CSS': 'admin/css/admin_custom.css',
+}
+
+# Admin Interface Customization
+ADMIN_INTERFACE = {
+    'SITE_TITLE': 'Gaming Analytics',
+    'SITE_HEADER': 'Gaming Analytics Administration',
+    'SITE_BRAND': 'Gaming Analytics',
+    'WELCOME_SIGN': 'Welcome to Gaming Analytics',
+    'COPYRIGHT': 'Gaming Analytics Team © 2025',
+    'CSS_GENERIC_FIELD_WRAPPER': True,
+    'SHOW_THEMES': False,
+    'THEME': 'default',
+}
+
 # Media files
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"

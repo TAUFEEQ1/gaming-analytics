@@ -1,0 +1,175 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | {% get_current_site as current_site %}{{ current_site.name }}{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static 'admin/css/admin_custom.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #8B0000 0%, #660000 100%);
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .admin-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .admin-header h1 i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .admin-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.875rem;
+        }
+        
+        .admin-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0.9;
+        }
+        
+        .breadcrumbs {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 20px;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .module h2, .module caption {
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            color: #374151;
+            font-weight: 600;
+            padding: 15px 20px;
+            margin: 0;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .module h2 i, .module caption i {
+            margin-right: 8px;
+            color: #8B0000;
+        }
+        
+        .dashboard .module table th {
+            background: #f9fafb;
+            color: #374151;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .dashboard .module table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .dashboard .module table td a {
+            color: #8B0000;
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .dashboard .module table td a:hover {
+            color: #660000;
+        }
+        
+        .addlink, .changelink {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #8B0000;
+            font-weight: 500;
+        }
+        
+        .addlink:before, .changelink:before {
+            content: '+';
+            font-weight: bold;
+        }
+        
+        .changelink:before {
+            content: '✎';
+        }
+    </style>
+{% endblock %}
+
+{% block header %}
+    <div class="admin-header">
+        <h1>
+            <i class="fas fa-gamepad"></i>
+            {{ site_header|default:"Gaming Analytics Administration" }}
+        </h1>
+        <div class="admin-stats">
+            <div class="admin-stat">
+                <i class="fas fa-user"></i>
+                <span>{{ user.get_full_name|default:user.username }}</span>
+            </div>
+            <div class="admin-stat">
+                <i class="fas fa-clock"></i>
+                <span id="current-time"></span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour12: true, 
+                hour: 'numeric', 
+                minute: '2-digit' 
+            });
+            document.getElementById('current-time').textContent = timeString;
+        }
+        
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Add icons to admin modules
+        document.addEventListener('DOMContentLoaded', function() {
+            const moduleIcons = {
+                'Users': 'fa-users',
+                'Groups': 'fa-users-cog',
+                'Sites': 'fa-globe',
+                'Recent actions': 'fa-history',
+                'Authentication and Authorization': 'fa-shield-alt',
+                'Accounts': 'fa-user-circle',
+                'Dashboard': 'fa-chart-line'
+            };
+            
+            document.querySelectorAll('.module h2, .module caption').forEach(function(header) {
+                const text = header.textContent.trim();
+                for (const [key, icon] of Object.entries(moduleIcons)) {
+                    if (text.includes(key)) {
+                        header.innerHTML = '<i class="fas ' + icon + '"></i>' + header.innerHTML;
+                        break;
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}
