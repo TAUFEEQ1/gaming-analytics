@@ -18,4 +18,5 @@ urlpatterns = [
     
     # Tax Return Submissions Analysis
     path('return-variance/', views.return_variance, name='return_variance'),
+    path('return-variance/operator/<str:operator_name>/', views.return_variance_detail, name='return_variance_detail'),
 ]

@@ -821,4 +821,55 @@ def return_variance(request):
         'selected_category': category_filter,
     }
     
-    return render(request, 'dashboard/return_variance.html', context) 
+    return render(request, 'dashboard/return_variance.html', context)
+
+@login_required
+def return_variance_detail(request, operator_name):
+    """Operator Return Variance Detail View"""
+    from .returns_utils import ReturnsAnalysisHandler
+    
+    # Initialize handler
+    returns_handler = ReturnsAnalysisHandler()
+    
+    # Get operator details
+    operator_data = returns_handler.get_operator_detail(operator_name)
+    
+    if not operator_data:
+        from django.http import Http404
+        raise Http404(f"Operator '{operator_name}' not found")
+    
+    # Format date range display
+    date_range_display = f"{operator_data['date_range']['start'].strftime('%d %b %Y')} - {operator_data['date_range']['end'].strftime('%d %b %Y')}"
+    
+    # Prepare chart data
+    chart_dates = [datetime.strptime(d, '%Y-%m-%d').strftime('%d %b %Y') for d in operator_data['time_series']['dates']]
+    
+    context = {
+        'operator': {
+            'name': operator_data['operator_name'],
+            'category': operator_data['category'],
+        },
+        'total_submissions': operator_data['total_submissions'],
+        'total_anomalies': operator_data['total_anomalies'],
+        'anomaly_percentage': operator_data['anomaly_percentage'],
+        'total_actual_tax': operator_data['total_actual_tax'],
+        'total_predicted_tax': operator_data['total_predicted_tax'],
+        'total_sales': operator_data['total_sales'],
+        'total_payouts': operator_data['total_payouts'],
+        'avg_actual_tax': operator_data['avg_actual_tax'],
+        'avg_predicted_tax': operator_data['avg_predicted_tax'],
+        'avg_sales': operator_data['avg_sales'],
+        'avg_payouts': operator_data['avg_payouts'],
+        'date_range_display': date_range_display,
+        'chart_data': {
+            'dates': json.dumps(chart_dates),
+            'actual_tax': json.dumps(operator_data['time_series']['actual_tax']),
+            'predicted_tax': json.dumps(operator_data['time_series']['predicted_tax']),
+            'sales': json.dumps(operator_data['time_series']['sales']),
+            'payouts': json.dumps(operator_data['time_series']['payouts']),
+        },
+        'submissions': operator_data['submissions'],
+        'anomaly_records': operator_data['anomaly_records'][:20],  # Show most recent 20
+    }
+    
+    return render(request, 'dashboard/return_variance_detail.html', context) 
