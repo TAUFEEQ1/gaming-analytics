@@ -789,3 +789,36 @@ def operator_tax_detail(request, operator_name):
     }
     
     return render(request, 'dashboard/operator_tax_detail.html', context)
+
+@login_required
+def return_variance(request):
+    """Operator Tax Return Submissions Analysis"""
+    from .returns_utils import ReturnsAnalysisHandler
+    
+    # Initialize handler
+    returns_handler = ReturnsAnalysisHandler()
+    
+    # Get category filter from query params
+    category_filter = request.GET.get('category', 'all')
+    
+    # Get operators summary (with optional category filter)
+    operators_summary = returns_handler.get_operators_summary(category_filter=category_filter)
+    
+    # Get overall summary statistics (with optional category filter)
+    summary_stats = returns_handler.get_summary_statistics(category_filter=category_filter)
+    
+    # Get category breakdown (always show all categories)
+    category_breakdown = returns_handler.get_category_breakdown()
+    
+    # Get list of all unique categories for filter dropdown
+    all_categories = [cat['category'] for cat in category_breakdown]
+    
+    context = {
+        'operators': operators_summary,
+        'summary_stats': summary_stats,
+        'category_breakdown': category_breakdown,
+        'all_categories': all_categories,
+        'selected_category': category_filter,
+    }
+    
+    return render(request, 'dashboard/return_variance.html', context) 
