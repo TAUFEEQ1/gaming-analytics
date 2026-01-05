@@ -584,7 +584,7 @@ def deviation_analysis(request):
 
 @login_required
 def deviation_detail(request, operator_name):
-    """NLGRB vs URA Tax Deviation Detail View (stub for future implementation)"""
+    """NLGRB vs URA Tax Deviation Detail View"""
     from .deviation_analysis_utils import DeviationAnalysisHandler
     from django.http import Http404
     
@@ -595,15 +595,56 @@ def deviation_detail(request, operator_name):
     months_filter = request.GET.get('months', 'all')
     
     # Get operator details
-    operator_df = deviation_handler.get_operator_detail(operator_name, months_filter=months_filter)
+    operator_data = deviation_handler.get_operator_detail(operator_name, months_filter=months_filter)
     
-    if operator_df.empty:
+    if not operator_data:
         raise Http404(f"Operator '{operator_name}' not found")
     
-    # TODO: Implement detailed view with charts and monthly breakdown
+    # Format date range display
+    date_range_display = f"{operator_data['date_range']['start'].strftime('%b %Y')} - {operator_data['date_range']['end'].strftime('%b %Y')}"
+    
+    # Prepare chart data - format dates for display
+    chart_dates = [datetime.strptime(d, '%Y-%m-%d').strftime('%b %Y') for d in operator_data['time_series']['dates']]
+    
+    # Define time filter options
+    time_filter_options = [
+        ('3', 'Last 3 Months'),
+        ('6', 'Last 6 Months'),
+        ('12', 'Last 12 Months'),
+        ('all', 'All Time'),
+    ]
+    
     context = {
-        'operator_name': operator_name,
-        'message': 'Detail view coming soon',
+        'operator': {
+            'name': operator_data['operator_name'],
+        },
+        'months_count': operator_data['months_count'],
+        'anomalies_count': operator_data['anomalies_count'],
+        'anomaly_percentage': operator_data['anomaly_percentage'],
+        'total_nlgrb': operator_data['total_nlgrb'],
+        'total_ura': operator_data['total_ura'],
+        'total_deviation': operator_data['total_deviation'],
+        'total_abs_deviation': operator_data['total_abs_deviation'],
+        'percentage_variance': operator_data['percentage_variance'],
+        'avg_nlgrb': operator_data['avg_nlgrb'],
+        'avg_ura': operator_data['avg_ura'],
+        'avg_deviation': operator_data['avg_deviation'],
+        'date_range_display': date_range_display,
+        'chart_data': {
+            'dates': json.dumps(chart_dates),
+            'nlgrb': json.dumps(operator_data['time_series']['nlgrb']),
+            'ura': json.dumps(operator_data['time_series']['ura']),
+            'deviations': json.dumps(operator_data['time_series']['deviations']),
+            'abs_deviations': json.dumps(operator_data['time_series']['abs_deviations']),
+            'is_anomaly': json.dumps(operator_data['time_series']['is_anomaly']),
+            'yoy_nlgrb': json.dumps(operator_data['time_series']['yoy_nlgrb']),
+            'yoy_ura': json.dumps(operator_data['time_series']['yoy_ura']),
+        },
+        'monthly_records': operator_data['monthly_records'],
+        'anomaly_records': operator_data['anomaly_records'][:10],  # Show most recent 10
+        'time_filter_options': time_filter_options,
+        'selected_months': months_filter,
     }
     
     return render(request, 'dashboard/deviation_detail.html', context)
+

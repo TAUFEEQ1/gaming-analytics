@@ -145,7 +145,7 @@ class DeviationAnalysisHandler:
             months_filter: Filter by months ('3', '6', '12', or 'all')
         
         Returns:
-            DataFrame: Filtered monthly data for the operator
+            dict: Comprehensive operator data with metrics and time series
         """
         df = self.df.copy()
         
@@ -155,7 +155,116 @@ class DeviationAnalysisHandler:
         # Filter by operator
         operator_df = df[df['Operator_Name'] == operator_name].copy()
         
-        # Sort by date descending
-        operator_df = operator_df.sort_values('Month_Year', ascending=False)
+        if operator_df.empty:
+            return None
         
-        return operator_df
+        # Sort by date for time series (ascending)
+        operator_df_sorted = operator_df.sort_values('Month_Year', ascending=True)
+        
+        # Calculate summary metrics
+        total_nlgrb = float(operator_df['NLGRB_Returns'].sum())
+        total_ura = float(operator_df['URA_Collections'].sum())
+        total_abs_deviation = float(operator_df['Abs_Residual'].sum())
+        total_deviation = float(operator_df['Residual'].sum())
+        
+        months_count = len(operator_df)
+        anomalies_count = len(operator_df[operator_df['Is_Anomaly'] == True])
+        anomaly_percentage = (anomalies_count / months_count * 100) if months_count > 0 else 0
+        
+        # Calculate averages
+        avg_nlgrb = total_nlgrb / months_count if months_count > 0 else 0
+        avg_ura = total_ura / months_count if months_count > 0 else 0
+        avg_deviation = total_deviation / months_count if months_count > 0 else 0
+        
+        # Calculate percentage variance
+        if total_nlgrb > 0:
+            percentage_variance = ((total_ura - total_nlgrb) / total_nlgrb) * 100
+        else:
+            percentage_variance = 0.0
+        
+        # Prepare time series data for charts
+        time_series = {
+            'dates': [d.strftime('%Y-%m-%d') for d in operator_df_sorted['Month_Year']],
+            'nlgrb': operator_df_sorted['NLGRB_Returns'].tolist(),
+            'ura': operator_df_sorted['URA_Collections'].tolist(),
+            'deviations': operator_df_sorted['Residual'].tolist(),
+            'abs_deviations': operator_df_sorted['Abs_Residual'].tolist(),
+            'is_anomaly': operator_df_sorted['Is_Anomaly'].tolist(),
+        }
+        
+        # Calculate year-on-year changes if we have enough data
+        yoy_nlgrb = []
+        yoy_ura = []
+        
+        for idx, row in operator_df_sorted.iterrows():
+            current_month = row['Month_Year']
+            year_ago = current_month - pd.DateOffset(years=1)
+            
+            # Find matching month from last year
+            last_year_data = operator_df_sorted[
+                (operator_df_sorted['Month_Year'] >= year_ago - pd.DateOffset(days=15)) &
+                (operator_df_sorted['Month_Year'] <= year_ago + pd.DateOffset(days=15))
+            ]
+            
+            if not last_year_data.empty:
+                prev_nlgrb = float(last_year_data.iloc[0]['NLGRB_Returns'])
+                prev_ura = float(last_year_data.iloc[0]['URA_Collections'])
+                
+                if prev_nlgrb > 0:
+                    yoy_nlgrb.append(((row['NLGRB_Returns'] - prev_nlgrb) / prev_nlgrb) * 100)
+                else:
+                    yoy_nlgrb.append(0)
+                    
+                if prev_ura > 0:
+                    yoy_ura.append(((row['URA_Collections'] - prev_ura) / prev_ura) * 100)
+                else:
+                    yoy_ura.append(0)
+            else:
+                yoy_nlgrb.append(None)
+                yoy_ura.append(None)
+        
+        time_series['yoy_nlgrb'] = yoy_nlgrb
+        time_series['yoy_ura'] = yoy_ura
+        
+        # Prepare monthly records for table (sort descending for display)
+        monthly_records = []
+        for idx, row in operator_df.sort_values('Month_Year', ascending=False).iterrows():
+            monthly_records.append({
+                'month_year': row['Month_Year'].strftime('%b %Y'),
+                'month_year_date': row['Month_Year'],
+                'nlgrb': float(row['NLGRB_Returns']),
+                'ura': float(row['URA_Collections']),
+                'deviation': float(row['Residual']),
+                'abs_deviation': float(row['Abs_Residual']),
+                'modified_z': float(row['Modified_Z']) if pd.notna(row['Modified_Z']) else 0,
+                'is_anomaly': bool(row['Is_Anomaly']),
+                'percentage_variance': ((row['URA_Collections'] - row['NLGRB_Returns']) / row['NLGRB_Returns'] * 100) if row['NLGRB_Returns'] > 0 else 0,
+            })
+        
+        # Get anomaly records (most recent anomalies)
+        anomaly_records = [rec for rec in monthly_records if rec['is_anomaly']]
+        
+        # Date range
+        date_range = {
+            'start': operator_df['Month_Year'].min(),
+            'end': operator_df['Month_Year'].max()
+        }
+        
+        return {
+            'operator_name': operator_name,
+            'total_nlgrb': total_nlgrb,
+            'total_ura': total_ura,
+            'total_deviation': total_deviation,
+            'total_abs_deviation': total_abs_deviation,
+            'percentage_variance': percentage_variance,
+            'months_count': months_count,
+            'anomalies_count': anomalies_count,
+            'anomaly_percentage': anomaly_percentage,
+            'avg_nlgrb': avg_nlgrb,
+            'avg_ura': avg_ura,
+            'avg_deviation': avg_deviation,
+            'time_series': time_series,
+            'monthly_records': monthly_records,
+            'anomaly_records': anomaly_records,
+            'date_range': date_range,
+        }
