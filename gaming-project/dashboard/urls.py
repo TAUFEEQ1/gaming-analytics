@@ -13,4 +13,8 @@ urlpatterns = [
     # Tax Return Submissions Analysis
     path('return-variance/', views.return_variance, name='return_variance'),
     path('return-variance/operator/<str:operator_name>/', views.return_variance_detail, name='return_variance_detail'),
+    
+    # NLGRB vs URA Tax Deviation Analysis
+    path('deviation-analysis/', views.deviation_analysis, name='deviation_analysis'),
+    path('deviation-analysis/operator/<str:operator_name>/', views.deviation_detail, name='deviation_detail'),
 ]

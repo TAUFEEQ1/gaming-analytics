@@ -545,3 +545,65 @@ def return_variance_detail(request, operator_name):
     }
     
     return render(request, 'dashboard/return_variance_detail.html', context) 
+
+
+@login_required
+def deviation_analysis(request):
+    """NLGRB vs URA Tax Deviation Analysis"""
+    from .deviation_analysis_utils import DeviationAnalysisHandler
+    
+    # Initialize handler
+    deviation_handler = DeviationAnalysisHandler()
+    
+    # Get time filter from query params (default: 'all')
+    months_filter = request.GET.get('months', 'all')
+    
+    # Get operators summary (with optional time filter)
+    operators_summary = deviation_handler.get_operators_summary(months_filter=months_filter)
+    
+    # Get overall summary statistics (with optional time filter)
+    summary_stats = deviation_handler.get_summary_statistics(months_filter=months_filter)
+    
+    # Define time filter options
+    time_filter_options = [
+        ('3', 'Last 3 Months'),
+        ('6', 'Last 6 Months'),
+        ('12', 'Last 12 Months'),
+        ('all', 'All Time'),
+    ]
+    
+    context = {
+        'operators': operators_summary,
+        'summary_stats': summary_stats,
+        'time_filter_options': time_filter_options,
+        'selected_months': months_filter,
+    }
+    
+    return render(request, 'dashboard/deviation_analysis.html', context)
+
+
+@login_required
+def deviation_detail(request, operator_name):
+    """NLGRB vs URA Tax Deviation Detail View (stub for future implementation)"""
+    from .deviation_analysis_utils import DeviationAnalysisHandler
+    from django.http import Http404
+    
+    # Initialize handler
+    deviation_handler = DeviationAnalysisHandler()
+    
+    # Get time filter from query params
+    months_filter = request.GET.get('months', 'all')
+    
+    # Get operator details
+    operator_df = deviation_handler.get_operator_detail(operator_name, months_filter=months_filter)
+    
+    if operator_df.empty:
+        raise Http404(f"Operator '{operator_name}' not found")
+    
+    # TODO: Implement detailed view with charts and monthly breakdown
+    context = {
+        'operator_name': operator_name,
+        'message': 'Detail view coming soon',
+    }
+    
+    return render(request, 'dashboard/deviation_detail.html', context)
