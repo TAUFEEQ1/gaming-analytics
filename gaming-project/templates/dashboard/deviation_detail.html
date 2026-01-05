@@ -1,0 +1,633 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block title %}{{ operator.name }} - Tax Deviation Details{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<style>
+    .metric-card {
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .chart-toggle-btn {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .chart-toggle-btn.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+    .table-cell-anomaly {
+        background-color: #fff3cd !important;
+    }
+    .positive-deviation {
+        color: #28a745;
+        font-weight: 600;
+    }
+    .negative-deviation {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    .variance-badge-low {
+        background-color: #28a745;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .variance-badge-medium {
+        background-color: #ffc107;
+        color: #212529;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .variance-badge-high {
+        background-color: #dc3545;
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .anomaly-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'deviation_analysis' %}">Tax Deviation Analysis</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ operator.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Operator Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-xl bg-primary text-white me-3 d-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem;">
+                            <span>{{ operator.name|slice:":2"|upper }}</span>
+                        </div>
+                        <div>
+                            <h3 class="mb-1">{{ operator.name }}</h3>
+                            <p class="text-muted mb-0">NLGRB vs URA Tax Collection Comparison</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <form method="get" class="d-inline-block me-2">
+                        <select name="months" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="this.form.submit()">
+                            {% for value, label in time_filter_options %}
+                            <option value="{{ value }}" {% if selected_months == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <button class="btn btn-sm btn-outline-secondary me-2">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Info Bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-calendar me-2 text-muted"></i>
+                    <small class="text-muted">Analysis Period:</small>
+                    <strong class="ms-2">{{ date_range_display }}</strong>
+                    <span class="ms-3 text-muted">|</span>
+                    <small class="text-muted ms-3">Months Analyzed:</small>
+                    <strong class="ms-2">{{ months_count }}</strong>
+                </div>
+                <div>
+                    {% if anomalies_count > 0 %}
+                    <span class="anomaly-badge">
+                        <i class="fas fa-exclamation-triangle"></i> {{ anomalies_count }} Anomalous Month{{ anomalies_count|pluralize }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Left Column: Charts -->
+        <div class="col-lg-9 mb-4">
+            <!-- NLGRB vs URA Tax Chart -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Tax Collection Trend: NLGRB vs URA</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn active" data-chart="tax" data-series="both">
+                                Both
+                            </button>
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn" data-chart="tax" data-series="nlgrb">
+                                NLGRB Only
+                            </button>
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn" data-chart="tax" data-series="ura">
+                                URA Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="taxChart"></div>
+                </div>
+            </div>
+
+            <!-- Deviation Chart -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Deviation Analysis (URA - NLGRB)</h5>
+                </div>
+                <div class="card-body">
+                    <div id="deviationChart"></div>
+                </div>
+            </div>
+
+            <!-- Year-on-Year Comparison Chart -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Year-on-Year Percentage Change</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-info chart-toggle-btn active" data-chart="yoy" data-series="both">
+                                Both
+                            </button>
+                            <button type="button" class="btn btn-outline-info chart-toggle-btn" data-chart="yoy" data-series="nlgrb">
+                                NLGRB Only
+                            </button>
+                            <button type="button" class="btn btn-outline-info chart-toggle-btn" data-chart="yoy" data-series="ura">
+                                URA Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="yoyChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Metrics -->
+        <div class="col-lg-3 mb-4">
+            <!-- Months Analyzed Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-calendar-alt text-primary me-1"></i> Months Analyzed
+                    </h6>
+                    <h3 class="mb-0">{{ months_count }}</h3>
+                    <small class="text-danger">{{ anomalies_count }} Anomalies ({{ anomaly_percentage|floatformat:1 }}%)</small>
+                </div>
+            </div>
+
+            <!-- Total NLGRB Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-file-invoice text-info me-1"></i> Total NLGRB
+                    </h6>
+                    <h4 class="mb-0">{{ total_nlgrb|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Total URA Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-money-bill-wave text-success me-1"></i> Total URA
+                    </h6>
+                    <h4 class="mb-0">{{ total_ura|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Total Abs Deviation Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-exclamation-triangle text-warning me-1"></i> Total Abs Deviation
+                    </h6>
+                    <h4 class="mb-0">{{ total_abs_deviation|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Average Monthly Deviation Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-chart-line text-primary me-1"></i> Avg Monthly Deviation
+                    </h6>
+                    <h4 class="mb-0">{{ avg_deviation|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Percentage Variance Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-percentage text-info me-1"></i> Overall Variance
+                    </h6>
+                    <h4 class="mb-0">{{ percentage_variance|floatformat:2 }}%</h4>
+                    <small class="text-muted">(URA - NLGRB) / NLGRB</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Details Row -->
+    <div class="row">
+        <!-- Left Column: Monthly Data Table -->
+        <div class="col-lg-9 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Monthly Breakdown</h5>
+                        <div>
+                            <select id="anomalyFilter" class="form-select form-select-sm" style="width: auto;">
+                                <option value="all">All Months</option>
+                                <option value="anomalies">Anomalies Only</option>
+                                <option value="normal">Normal Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="monthlyTable" class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th class="text-end">NLGRB Returns</th>
+                                    <th class="text-end">URA Collections</th>
+                                    <th class="text-end">Deviation</th>
+                                    <th class="text-end">Abs Deviation</th>
+                                    <th class="text-center">% Variance</th>
+                                    <th class="text-center">Z-Score</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in monthly_records %}
+                                <tr {% if record.is_anomaly %}class="table-cell-anomaly" data-anomaly="true"{% else %}data-anomaly="false"{% endif %}>
+                                    <td><strong>{{ record.month_year }}</strong></td>
+                                    <td class="text-end">UGX {{ record.nlgrb|humanize_number }}</td>
+                                    <td class="text-end">UGX {{ record.ura|humanize_number }}</td>
+                                    <td class="text-end">
+                                        {% if record.deviation >= 0 %}
+                                        <span class="positive-deviation">+UGX {{ record.deviation|humanize_number }}</span>
+                                        {% else %}
+                                        <span class="negative-deviation">-UGX {{ record.deviation|abs|humanize_number }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">UGX {{ record.abs_deviation|humanize_number }}</td>
+                                    <td class="text-center">
+                                        {% with abs_variance=record.percentage_variance|abs %}
+                                        {% if abs_variance < 5 %}
+                                        <span class="variance-badge-low">{{ record.percentage_variance|floatformat:1 }}%</span>
+                                        {% elif abs_variance < 15 %}
+                                        <span class="variance-badge-medium">{{ record.percentage_variance|floatformat:1 }}%</span>
+                                        {% else %}
+                                        <span class="variance-badge-high">{{ record.percentage_variance|floatformat:1 }}%</span>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge {% if record.is_anomaly %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ record.modified_z|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if record.is_anomaly %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> Anomaly
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Normal
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Recent Anomalies -->
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Recent Anomalies</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if anomaly_records %}
+                    <div class="list-group list-group-flush">
+                        {% for anomaly in anomaly_records %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted"><strong>{{ anomaly.month_year }}</strong></small>
+                                <span class="badge bg-danger">{{ anomaly.modified_z|floatformat:2 }}</span>
+                            </div>
+                            <div class="small">
+                                <div class="mb-1">
+                                    <strong>NLGRB:</strong> {{ anomaly.nlgrb|humanize_number }}
+                                </div>
+                                <div class="mb-1">
+                                    <strong>URA:</strong> {{ anomaly.ura|humanize_number }}
+                                </div>
+                                <div class="{% if anomaly.deviation >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>Deviation:</strong> 
+                                    {% if anomaly.deviation >= 0 %}+{% else %}-{% endif %}{{ anomaly.deviation|abs|humanize_number }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-3 text-center text-muted">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <p class="mb-0">No anomalies detected</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+
+<script>
+// Parse chart data from Django context
+const chartDates = JSON.parse('{{ chart_data.dates|safe }}');
+const nlgrbData = JSON.parse('{{ chart_data.nlgrb|safe }}');
+const uraData = JSON.parse('{{ chart_data.ura|safe }}');
+const deviations = JSON.parse('{{ chart_data.deviations|safe }}');
+const absDeviations = JSON.parse('{{ chart_data.abs_deviations|safe }}');
+const isAnomaly = JSON.parse('{{ chart_data.is_anomaly|safe }}');
+const yoyNlgrb = JSON.parse('{{ chart_data.yoy_nlgrb|safe }}');
+const yoyUra = JSON.parse('{{ chart_data.yoy_ura|safe }}');
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    
+// NLGRB vs URA Tax Chart (Trend Line)
+let taxChartOptions = {
+    series: [
+        { name: 'NLGRB Returns', data: nlgrbData },
+        { name: 'URA Collections', data: uraData }
+    ],
+    chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: true },
+        animations: { enabled: true }
+    },
+    colors: ['#17a2b8', '#28a745'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 3 },
+    markers: {
+        size: 5,
+        hover: { size: 7 }
+    },
+    xaxis: {
+        categories: chartDates,
+        labels: { rotate: -45, rotateAlways: false }
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                if (val >= 1000000000) return (val / 1000000000).toFixed(2) + 'B';
+                if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
+                if (val >= 1000) return (val / 1000).toFixed(2) + 'K';
+                return val.toFixed(0);
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'UGX ' + val.toLocaleString();
+            }
+        }
+    },
+    legend: { position: 'top' }
+};
+
+const taxChart = new ApexCharts(document.querySelector("#taxChart"), taxChartOptions);
+taxChart.render();
+
+// Deviation Chart (Area Chart with positive/negative coloring)
+let deviationChartOptions = {
+    series: [
+        { name: 'Deviation (URA - NLGRB)', data: deviations }
+    ],
+    chart: {
+        type: 'area',
+        height: 300,
+        toolbar: { show: true }
+    },
+    colors: ['#ffc107'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            opacityFrom: 0.6,
+            opacityTo: 0.1
+        }
+    },
+    xaxis: {
+        categories: chartDates,
+        labels: { rotate: -45, rotateAlways: false }
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                if (val >= 1000000000) return (val / 1000000000).toFixed(2) + 'B';
+                if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
+                if (val >= 1000) return (val / 1000).toFixed(2) + 'K';
+                return val.toFixed(0);
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'UGX ' + val.toLocaleString();
+            }
+        }
+    },
+    annotations: {
+        yaxis: [{
+            y: 0,
+            borderColor: '#999',
+            label: {
+                text: 'Zero Line',
+                style: {
+                    color: '#fff',
+                    background: '#999'
+                }
+            }
+        }]
+    }
+};
+
+const deviationChart = new ApexCharts(document.querySelector("#deviationChart"), deviationChartOptions);
+deviationChart.render();
+
+// Year-on-Year Chart
+let yoyChartOptions = {
+    series: [
+        { name: 'NLGRB YoY %', data: yoyNlgrb },
+        { name: 'URA YoY %', data: yoyUra }
+    ],
+    chart: {
+        type: 'bar',
+        height: 300,
+        toolbar: { show: true }
+    },
+    colors: ['#17a2b8', '#28a745'],
+    dataLabels: { enabled: false },
+    plotOptions: {
+        bar: {
+            columnWidth: '60%'
+        }
+    },
+    xaxis: {
+        categories: chartDates,
+        labels: { rotate: -45, rotateAlways: false }
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                if (val === null) return 'N/A';
+                return val.toFixed(1) + '%';
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                if (val === null) return 'N/A';
+                return val.toFixed(2) + '%';
+            }
+        }
+    },
+    legend: { position: 'top' }
+};
+
+const yoyChart = new ApexCharts(document.querySelector("#yoyChart"), yoyChartOptions);
+yoyChart.render();
+
+// Chart Toggle Functionality for Tax Chart
+document.querySelectorAll('[data-chart="tax"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-chart="tax"]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const series = this.dataset.series;
+        if (series === 'both') {
+            taxChart.updateSeries([
+                { name: 'NLGRB Returns', data: nlgrbData },
+                { name: 'URA Collections', data: uraData }
+            ]);
+        } else if (series === 'nlgrb') {
+            taxChart.updateSeries([{ name: 'NLGRB Returns', data: nlgrbData }]);
+        } else if (series === 'ura') {
+            taxChart.updateSeries([{ name: 'URA Collections', data: uraData }]);
+        }
+    });
+});
+
+// Chart Toggle Functionality for YoY Chart
+document.querySelectorAll('[data-chart="yoy"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-chart="yoy"]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const series = this.dataset.series;
+        if (series === 'both') {
+            yoyChart.updateSeries([
+                { name: 'NLGRB YoY %', data: yoyNlgrb },
+                { name: 'URA YoY %', data: yoyUra }
+            ]);
+        } else if (series === 'nlgrb') {
+            yoyChart.updateSeries([{ name: 'NLGRB YoY %', data: yoyNlgrb }]);
+        } else if (series === 'ura') {
+            yoyChart.updateSeries([{ name: 'URA YoY %', data: yoyUra }]);
+        }
+    });
+});
+
+// Initialize DataTable
+let table = $('#monthlyTable').DataTable({
+    order: [[0, 'desc']], // Sort by month descending
+    pageLength: 25,
+    language: {
+        search: "Search months:",
+        lengthMenu: "Show _MENU_ months per page",
+        info: "Showing _START_ to _END_ of _TOTAL_ months",
+        infoEmpty: "No months found",
+        infoFiltered: "(filtered from _MAX_ total months)"
+    }
+});
+
+// Anomaly Filter Functionality
+$('#anomalyFilter').on('change', function() {
+    const filterValue = $(this).val();
+    
+    if (filterValue === 'all') {
+        table.column(7).search('').draw();
+    } else if (filterValue === 'anomalies') {
+        table.column(7).search('Anomaly').draw();
+    } else if (filterValue === 'normal') {
+        table.column(7).search('Normal').draw();
+    }
+});
+
+}); // End DOMContentLoaded
+</script>
+{% endblock %}

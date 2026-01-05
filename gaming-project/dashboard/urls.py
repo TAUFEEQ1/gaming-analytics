@@ -10,9 +10,11 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('operator/<str:operator_code>/', views.performance_detail, name='performance_detail'),
     
-    # Tax Variance Analysis URLs
-    path('tax-variance/', views.tax_variance_dashboard, name='tax_variance_dashboard'),
-    path('tax-variance/upload/', views.tax_variance_upload, name='tax_variance_upload'),
-    path('tax-variance/calculate/', views.calculate_tax_variance, name='calculate_tax_variance'),
-    path('tax-variance/operator/<str:operator_name>/', views.operator_tax_detail, name='operator_tax_detail'),
+    # Tax Return Submissions Analysis
+    path('return-variance/', views.return_variance, name='return_variance'),
+    path('return-variance/operator/<str:operator_name>/', views.return_variance_detail, name='return_variance_detail'),
+    
+    # NLGRB vs URA Tax Deviation Analysis
+    path('deviation-analysis/', views.deviation_analysis, name='deviation_analysis'),
+    path('deviation-analysis/operator/<str:operator_name>/', views.deviation_detail, name='deviation_detail'),
 ]

@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load dashboard_filters %}
+
+{% block title %}{{ operator.name }} - Return Variance Details{% endblock %}
+
+{% block extra_css %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<style>
+    .metric-card {
+        transition: transform 0.2s;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+    }
+    .chart-toggle-btn {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .chart-toggle-btn.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+    .table-cell-flagged {
+        background-color: #fff3cd !important;
+        font-weight: bold;
+    }
+    .anomaly-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .category-badge {
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .category-bingo {
+        background-color: #e3f2fd;
+        color: #1565c0;
+    }
+    .category-casinos {
+        background-color: #f3e5f5;
+        color: #6a1b9a;
+    }
+    .category-betting {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+    .category-slots {
+        background-color: #fff3e0;
+        color: #e65100;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'return_variance' %}">Return Submissions</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ operator.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Operator Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-xl bg-primary text-white me-3">
+                            <span class="h3 mb-0">{{ operator.name|slice:":2"|upper }}</span>
+                        </div>
+                        <div>
+                            <h3 class="mb-1">{{ operator.name }}</h3>
+                            <span class="category-badge 
+                                {% if operator.category == 'BINGO' %}category-bingo
+                                {% elif operator.category == 'CASINOS' %}category-casinos
+                                {% elif operator.category == 'GENERAL BETTING' %}category-betting
+                                {% else %}category-slots{% endif %}">
+                                {{ operator.category }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <button class="btn btn-sm btn-outline-secondary me-2">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Info Bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-calendar me-2 text-muted"></i>
+                    <small class="text-muted">Analysis Period:</small>
+                    <strong class="ms-2">{{ date_range_display }}</strong>
+                </div>
+                <div>
+                    {% if total_anomalies > 0 %}
+                    <span class="anomaly-badge">
+                        <i class="fas fa-exclamation-triangle"></i> {{ total_anomalies }} Anomalies
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Row -->
+    <div class="row">
+        <!-- Left Column: Charts -->
+        <div class="col-lg-9 mb-4">
+            <!-- Gaming Tax Chart -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Gaming Tax Analysis</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn active" data-chart="tax" data-series="both">
+                                Actual vs Predicted
+                            </button>
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn" data-chart="tax" data-series="actual">
+                                Actual Only
+                            </button>
+                            <button type="button" class="btn btn-outline-primary chart-toggle-btn" data-chart="tax" data-series="predicted">
+                                Predicted Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="taxChart"></div>
+                </div>
+            </div>
+
+            <!-- Sales and Payouts Chart -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Sales & Payouts Trend</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-info chart-toggle-btn active" data-chart="sales" data-series="both">
+                                Both
+                            </button>
+                            <button type="button" class="btn btn-outline-info chart-toggle-btn" data-chart="sales" data-series="sales">
+                                Sales Only
+                            </button>
+                            <button type="button" class="btn btn-outline-info chart-toggle-btn" data-chart="sales" data-series="payouts">
+                                Payouts Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="salesChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Metrics -->
+        <div class="col-lg-3 mb-4">
+            <!-- Submissions Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-file-alt text-primary me-1"></i> Submissions
+                    </h6>
+                    <h3 class="mb-0">{{ total_submissions }}</h3>
+                    <small class="text-danger">{{ total_anomalies }} Anomalies ({{ anomaly_percentage|floatformat:1 }}%)</small>
+                </div>
+            </div>
+
+            <!-- Total Actual Tax Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-money-bill-wave text-success me-1"></i> Total Actual Tax
+                    </h6>
+                    <h4 class="mb-0">{{ total_actual_tax|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Total Predicted Tax Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-chart-line text-info me-1"></i> Total Predicted Tax
+                    </h6>
+                    <h4 class="mb-0">{{ total_predicted_tax|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Total Sales Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-shopping-cart text-primary me-1"></i> Total Sales
+                    </h6>
+                    <h4 class="mb-0">{{ total_sales|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+
+            <!-- Total Payouts Card -->
+            <div class="card border-0 shadow-sm mb-3 metric-card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-hand-holding-usd text-warning me-1"></i> Total Payouts
+                    </h6>
+                    <h4 class="mb-0">{{ total_payouts|humanize_number }}</h4>
+                    <small class="text-muted">UGX</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submissions Details Row -->
+    <div class="row">
+        <!-- Left Column: Submissions Table -->
+        <div class="col-lg-9 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Submission History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="submissionsTable" class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Month</th>
+                                    <th class="text-end">Actual Tax</th>
+                                    <th class="text-end">Predicted Tax</th>
+                                    <th class="text-end">Residual</th>
+                                    <th class="text-end">Sales</th>
+                                    <th class="text-end">Payouts</th>
+                                    <th class="text-center">Z-Score</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for submission in submissions %}
+                                <tr {% if submission.is_anomaly %}class="table-cell-flagged"{% endif %}>
+                                    <td>{{ submission.date|date:"d M Y" }}</td>
+                                    <td>{{ submission.month_year }}</td>
+                                    <td class="text-end">{{ submission.actual_tax|humanize_number }}</td>
+                                    <td class="text-end">{{ submission.predicted_tax|humanize_number }}</td>
+                                    <td class="text-end">
+                                        {% if submission.residuals < 0 %}
+                                        <span class="text-danger">{{ submission.residuals|humanize_number }}</span>
+                                        {% else %}
+                                        <span class="text-success">+{{ submission.residuals|humanize_number }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ submission.sales|humanize_number }}</td>
+                                    <td class="text-end">{{ submission.payouts|humanize_number }}</td>
+                                    <td class="text-center">
+                                        <span class="badge {% if submission.is_anomaly %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ submission.modified_z_score|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if submission.is_anomaly %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> Anomaly
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Normal
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Recent Anomalies -->
+        <div class="col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Recent Anomalies</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if anomaly_records %}
+                    <div class="list-group list-group-flush">
+                        {% for anomaly in anomaly_records %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted">{{ anomaly.date|date:"d M Y" }}</small>
+                                <span class="badge bg-danger">{{ anomaly.modified_z_score|floatformat:2 }}</span>
+                            </div>
+                            <div class="small">
+                                <div class="mb-1">
+                                    <strong>Actual:</strong> {{ anomaly.actual_tax|humanize_number }}
+                                </div>
+                                <div class="mb-1">
+                                    <strong>Predicted:</strong> {{ anomaly.predicted_tax|humanize_number }}
+                                </div>
+                                <div class="text-danger">
+                                    <strong>Residual:</strong> {{ anomaly.residuals|humanize_number }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-3 text-center text-muted">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <p class="mb-0">No anomalies detected</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<!-- ApexCharts - Use specific stable version -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+
+<script>
+// Parse chart data from Django context
+const chartDates = JSON.parse('{{ chart_data.dates|safe }}');
+const actualTax = JSON.parse('{{ chart_data.actual_tax|safe }}');
+const predictedTax = JSON.parse('{{ chart_data.predicted_tax|safe }}');
+const sales = JSON.parse('{{ chart_data.sales|safe }}');
+const payouts = JSON.parse('{{ chart_data.payouts|safe }}');
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    
+// Tax Chart
+let taxChartOptions = {
+    series: [
+        { name: 'Actual Tax', data: actualTax },
+        { name: 'Predicted Tax', data: predictedTax }
+    ],
+    chart: {
+        type: 'area',
+        height: 350,
+        toolbar: { show: true },
+        animations: { enabled: true }
+    },
+    colors: ['#28a745', '#17a2b8'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    fill: {
+        type: 'gradient',
+        gradient: {
+            opacityFrom: 0.6,
+            opacityTo: 0.1
+        }
+    },
+    xaxis: {
+        categories: chartDates,
+        labels: { rotate: -45 }
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                if (val >= 1000000000) return (val / 1000000000).toFixed(2) + 'B';
+                if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
+                if (val >= 1000) return (val / 1000).toFixed(2) + 'K';
+                return val.toFixed(2);
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'UGX ' + val.toLocaleString();
+            }
+        }
+    },
+    legend: { position: 'top' }
+};
+
+const taxChart = new ApexCharts(document.querySelector("#taxChart"), taxChartOptions);
+taxChart.render();
+
+// Sales Chart
+let salesChartOptions = {
+    series: [
+        { name: 'Sales', data: sales },
+        { name: 'Payouts', data: payouts }
+    ],
+    chart: {
+        type: 'line',
+        height: 350,
+        toolbar: { show: true }
+    },
+    colors: ['#007bff', '#ffc107'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 3 },
+    xaxis: {
+        categories: chartDates,
+        labels: { rotate: -45 }
+    },
+    yaxis: {
+        labels: {
+            formatter: function(val) {
+                if (val >= 1000000000) return (val / 1000000000).toFixed(2) + 'B';
+                if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
+                if (val >= 1000) return (val / 1000).toFixed(2) + 'K';
+                return val.toFixed(2);
+            }
+        }
+    },
+    tooltip: {
+        y: {
+            formatter: function(val) {
+                return 'UGX ' + val.toLocaleString();
+            }
+        }
+    },
+    legend: { position: 'top' }
+};
+
+const salesChart = new ApexCharts(document.querySelector("#salesChart"), salesChartOptions);
+salesChart.render();
+
+// Chart Toggle Functionality
+document.querySelectorAll('[data-chart="tax"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-chart="tax"]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const series = this.dataset.series;
+        if (series === 'both') {
+            taxChart.updateSeries([
+                { name: 'Actual Tax', data: actualTax },
+                { name: 'Predicted Tax', data: predictedTax }
+            ]);
+        } else if (series === 'actual') {
+            taxChart.updateSeries([{ name: 'Actual Tax', data: actualTax }]);
+        } else if (series === 'predicted') {
+            taxChart.updateSeries([{ name: 'Predicted Tax', data: predictedTax }]);
+        }
+    });
+});
+
+document.querySelectorAll('[data-chart="sales"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-chart="sales"]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const series = this.dataset.series;
+        if (series === 'both') {
+            salesChart.updateSeries([
+                { name: 'Sales', data: sales },
+                { name: 'Payouts', data: payouts }
+            ]);
+        } else if (series === 'sales') {
+            salesChart.updateSeries([{ name: 'Sales', data: sales }]);
+        } else if (series === 'payouts') {
+            salesChart.updateSeries([{ name: 'Payouts', data: payouts }]);
+        }
+    });
+});
+
+// Initialize DataTable
+$(document).ready(function() {
+    $('#submissionsTable').DataTable({
+        order: [[0, 'desc']], // Sort by date descending
+        pageLength: 25,
+        language: {
+            search: "Search submissions:",
+            lengthMenu: "Show _MENU_ submissions per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ submissions",
+            infoEmpty: "No submissions found",
+            infoFiltered: "(filtered from _MAX_ total submissions)"
+        }
+    });
+});
+
+}); // End DOMContentLoaded
+</script>
+{% endblock %}
