@@ -10,6 +10,11 @@ __pycache__/
 # PII mapping files - DO NOT COMMIT
 warehouse/data/mappings/
 
-lotterries_plain_dataset.csv
+# CSV files
+*.csv
 
-warehouse/data/filtered_game_summary.csv
+# Pickle files
+*.pkl
+
+# Parquet files
+*.parquet
